@@ -1,0 +1,40 @@
+.builder_filter_container {
+    width: 280px;
+    max-height: 100vh;
+    margin-left: 25px;
+}
+
+.builder_filter_blocks {
+    overflow: scroll;
+    height: 100%;
+}
+
+#builder_chart {
+    max-width: 100%;
+}
+
+.circle {
+    height: 12px;
+    width: 12px;
+    background-color: #fff;
+    border-radius: 50%;
+    display: inline-block;
+    border: 2px solid;
+}
+
+:target {
+    animation: highlight 1500ms ease-in-out;
+}
+
+@keyframes highlight {
+    0% {
+        background-color: var(--basic);
+    }
+    100% {
+        background-color: initial;
+    }
+}
+
+.card-header-padding-fix {
+    padding: 20px 20px 20px 30px;
+}
