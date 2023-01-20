@@ -3,8 +3,8 @@ from hashlib import md5
 from queue import Empty
 
 from flask_restful import Resource
-from flask import request, jsonify, send_file, redirect, url_for
-from io import BytesIO, StringIO
+from flask import request, jsonify, redirect, url_for
+from io import BytesIO
 from collections import defaultdict
 
 from pylon.core.tools import log
@@ -117,6 +117,6 @@ class API(Resource):
             except Empty:
                 ...
 
-
         hash_name = self.__upload_to_json(project, data)
-        return redirect(f'/-/performance/analysis/compare?source={hash_name}')
+
+        return redirect(f'{url_for("theme.index", _external=True)}-/performance/analysis/compare?source={hash_name}')
