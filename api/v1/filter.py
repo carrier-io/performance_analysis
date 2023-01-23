@@ -119,5 +119,5 @@ class API(Resource):
 
         hash_name = self.__upload_to_json(project, data)
 
-        url_base = url_for("theme.index", _external=True, _scheme=request.headers.get("X-Forwarded-Proto"))
+        url_base = url_for("theme.index", _external=True, _scheme=request.headers.get("X-Forwarded-Proto", 'http'))
         return redirect(f'{url_base}-/performance/analysis/compare?source={hash_name}')
