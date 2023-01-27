@@ -470,6 +470,24 @@ const get_common_chart_options = () => ({
 
 window.charts = {}
 
+window.handle_post_compare = async (tests, selected_aggregation_backend, selected_aggregation_ui, selected_metric_ui) => {
+    const response = await fetch(`${api_base}/performance_analysis/filter/${getSelectedProjectId()}`, {
+        method: 'POST',
+        body: JSON.stringify({
+            tests,
+            selected_aggregation_backend,
+            selected_aggregation_ui,
+            selected_metric_ui
+        }),
+        headers: {'Content-Type': 'application/json'},
+    })
+    if (response.redirected) {
+        window.location.href = response.url
+        // todo: remove
+        // window.location.href = response.url + '&' + $.param({test: 1})
+    }
+}
+
 const handle_click_compare = async () => {
     const selections = vueVm.registered_components.table_reports.table_action('getSelections')
 
@@ -479,18 +497,5 @@ const handle_click_compare = async () => {
     }
     const {selected_aggregation_backend, selected_aggregation_ui, selected_metric_ui} = vueVm.summary_filter
 
-    const response = await fetch(`${api_base}/performance_analysis/filter/${getSelectedProjectId()}`, {
-        method: 'POST',
-        body: JSON.stringify({
-            tests: selections,
-            selected_aggregation_backend, selected_aggregation_ui, selected_metric_ui
-        }),
-        headers: {'Content-Type': 'application/json'},
-        // redirect: 'manual'
-    })
-    if (response.redirected) {
-        window.location.href = response.url
-        // todo: remove
-        // window.location.href = response.url + '&' + $.param({test: 1})
-    }
+    await handle_post_compare(selections, selected_aggregation_backend, selected_aggregation_ui, selected_metric_ui)
 }

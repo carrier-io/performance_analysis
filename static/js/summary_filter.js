@@ -289,13 +289,28 @@ const SummaryFilter = {
         },
 
         timeframe() {
+            let d = new Date()
+            d.setUTCHours(0, 0, 0, 0)
             switch (this.start_time) {
-                // todo: place real date frames here
+                case 'yesterday':
+                    this.end_time = undefined
+                    d.setUTCDate(d.getUTCDate() - 1)
+                    return {start_time: d.toISOString()}
+                    break
                 case 'last_week':
+                    this.end_time = undefined
+                    d.setUTCDate(d.getUTCDate() - 7)
+                    return {start_time: d.toISOString()}
+                    break
                 case 'last_month':
+                    this.end_time = undefined
+                    d.setUTCMonth(d.getUTCMonth() - 1)
+                    return {start_time: d.toISOString()}
+                    break
                 case 'all':
                     this.end_time = undefined
-                    return {start_time: '2021-09-23T15:42:59.108Z'}
+                    return {}
+                    break
                 default: // e.g. if start time is from timepicker
                     return {start_time: this.start_time, end_time: this.end_time}
             }
@@ -457,6 +472,8 @@ const SummaryFilter = {
                 v-model="start_time"
             >
                 <option value="all">All</option>
+                <option value="yesterday">Yesterday</option>
+                <option value="last_week">Last Week</option>
                 <option value="last_month">Last Month</option>
             </select>
         </div>

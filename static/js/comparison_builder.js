@@ -29,10 +29,6 @@ const chart_options = {
             },
             tooltip: {
                 callbacks: {
-                    // afterTitle: (tooltip_item) => {
-                    //     console.log('tti', tooltip_item)
-                    //     return 'qwerty\nasdf\t123'
-                    // },
                     title: tooltip_items => {
                         const date_array = Array.from(
                             new Set(tooltip_items.map(i => i.raw.tooltip.real_start_time))
@@ -43,6 +39,11 @@ const chart_options = {
                             return [date_array[0], 'to', date_array.at(-1)]
                         }
                     },
+                    afterTitle: tooltip_items => {
+                        const d = new Date(tooltip_items[0].parsed.x)
+                        d.setHours(0)
+                        return `+${d.toLocaleTimeString()} from test start`
+                    },
                     beforeLabel: ({raw}) => {
                         let result = `test: ${raw.tooltip.test_name}; env: ${raw.tooltip.test_env}`
                         if (raw.tooltip.loop) {
@@ -50,6 +51,7 @@ const chart_options = {
                         }
                         return result
                     },
+                    label: ({raw, formattedValue}) => `${raw.tooltip.metric}: ${formattedValue}`,
                     afterLabel: ({raw}) => {
                         if (raw.tooltip.page) {
                             return `page: ${raw.tooltip.page}`
@@ -58,7 +60,6 @@ const chart_options = {
                             return `request: ${raw.tooltip.request}`
                         }
                     },
-                    label: ({raw, formattedValue}) => `${raw.tooltip.metric}: ${formattedValue}`
                 }
             }
         },
@@ -68,10 +69,11 @@ const chart_options = {
                 time: {
                     // unit: 'day',
                     displayFormats: {
+                        // todo: write more formatters
                         // day: 'dd MM'
-                        hour: 'hh:mm:ss',
-                        minute: 'mm:ss',
-                        second: 'mm:ss',
+                        hour: "hh:mm:ss",
+                        minute: "mm:ss",
+                        second: "m:ss",
                     },
                     maxUnit: 'hour',
                     minUnit: 'second'
@@ -84,7 +86,8 @@ const chart_options = {
                     max: 10,
                     source: 'data'
                 },
-                display: 'auto'
+                display: 'auto',
+                // min: 0
                 // display: false
             },
             y: {
@@ -410,14 +413,16 @@ const BuilderFilter = {
             let datasets = []
             let table_data = []
             const pages = get_pages_to_display(test, selected_actions)
-            pages.forEach(page => {
-                Object.entries(test.datasets[page]).forEach(([loop_id, ds]) => {
-                    const metrics_data = selected_metrics.map(metric_data_key => {
-                        // const metric_data_key = builder_metrics[block_data.type][i]
+            selected_metrics.forEach(metric_data_key => {
+                const page_data = pages.reduce((accum, page) => {
+                    Object.entries(test.datasets[page]).forEach(([loop_id, ds]) => {
+                        const time_delta = new Date(ds.timestamp) - new Date(test.loop_earliest_dates['1'])
                         // const time_delta = new Date(ds.timestamp) - new Date(test.start_time)
-                        const time_delta = new Date(ds.timestamp) - new Date(test.loop_earliest_dates[loop_id])
                         const {name, color} = builder_metrics[block_data.type][metric_data_key]
-                        return {
+                        if (accum[loop_id] === undefined) {
+                            accum[loop_id] = []
+                        }
+                        accum[loop_id].push({
                             // x: new Date(this.earliest_date.valueOf() + time_delta),
                             x: new Date(time_delta),
                             y: ds[metric_data_key],
@@ -428,25 +433,31 @@ const BuilderFilter = {
                                 loop: loop_id,
                                 metric: name,
                                 page: page,
-                                real_start_time: ds.timestamp
+                                real_start_time: ds.timestamp,
                             },
                             border_color: color
-                        }
-
+                        })
                     })
+                    return accum
+
+                }, {})
+                Object.entries(page_data).forEach(([loop_id, loop_pages_data]) => {
+                    loop_pages_data = loop_pages_data.sort((a, b) => a.x - b.x)
                     const dataset = {
-                        label: `${test.name}(id:${test.id}) - ${page}`,
-                        data: metrics_data,
-                        fill: true,
-                        borderColor: metrics_data.map(i => i.border_color || '#ffffff'),
-                        borderWidth: 2,
+                        label: `${test.name}(id: ${test.id}) - loop: ${loop_id} - ${metric_data_key}`,
+                        data: loop_pages_data,
+                        fill: false,
+                        borderColor: loop_pages_data.map(i => i.border_color || '#ffffff'),
+                        borderWidth: 1,
                         backgroundColor: get_random_color(),
-                        // tension: 0.1,
-                        type: 'scatter',
+                        tension: 0.5,
+                        // type: 'scatter',
+                        type: 'line',
+                        borderDash: [7, 7],
                         radius: 6,
                         // hidden: true,
                         source_block_id: block_data.id,
-                        showLine: false
+                        showLine: true
                     }
                     // console.log('dataset', dataset)
                     datasets.push(dataset)
@@ -454,12 +465,14 @@ const BuilderFilter = {
                         test_id: test.id,
                         name: test.name,
                         start_time: dsi.tooltip.real_start_time,
-                        page: page,
+                        page: dsi.tooltip.page,
                         metric: dsi.tooltip.metric,
                         source_block_id: block_data.id,
                         value: dsi.y
                     }))]
                 })
+
+
             })
             return [datasets, table_data]
         },

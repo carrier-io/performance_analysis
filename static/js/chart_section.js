@@ -1,5 +1,5 @@
 const ChartSection = {
-    props: ['tests', 'selected_aggregation_backend', 'selected_aggregation_ui', 'selected_metric_ui'],
+    props: ['tests', 'selected_aggregation_backend', 'selected_aggregation_ui', 'selected_metric_ui', 'hide_absent'],
     delimiters: ['[[', ']]'],
     data() {
         return {
@@ -248,29 +248,6 @@ const ChartSection = {
                     // align: 'start',
                 }
             })
-
-
-
-
-            // const datasets = []
-            // datasets.push({
-            //     ...dataset_main(`metric[${get_mapped_name(this.selected_aggregation_ui)}]`),
-            //     data: this.filtered_ui_tests.map(i => {
-            //         const metric_data = i.metrics[this.selected_metric_ui]
-            //         return metric_data && metric_data[this.selected_aggregation_ui]
-            //     }),
-            // })
-            // window.charts.page_speed.data = {
-            //     datasets: datasets,
-            //     labels: this.filtered_ui_tests.map(i => i.start_time),
-            // }
-            // window.charts.page_speed.options.plugins.title = `PAGE SPEED - ${get_mapped_name(this.selected_metric_ui)} - ${get_mapped_name(this.selected_aggregation_ui)}`
-            // window.charts.page_speed.options.plugins.subtitle = {
-            //     display: true,
-            //     text: `${this.selected_metric_ui_mapped} : ${this.selected_aggregation_ui_mapped}`,
-            //     align: 'center',
-            // }
-            // window.charts.page_speed.update()
         },
         handle_update_charts() {
             this.handle_update_backend_charts()
@@ -326,7 +303,7 @@ const ChartSection = {
     </div>
     
     <div class="d-flex justify-content-between my-3">
-        <div class="chart-container">
+        <div class="chart-container" v-show="!(hide_absent && filtered_backend_tests.length === 0)">
             <button type="button" class="btn btn-secondary btn-sm btn-icon__sm"
                     @click="() => handle_expand_chart('throughput')"
             >
@@ -334,7 +311,7 @@ const ChartSection = {
             </button>
             <canvas id="throughput_chart"></canvas>
         </div>
-        <div class="chart-container">
+        <div class="chart-container" v-show="!(hide_absent && filtered_backend_tests.length === 0)">
             <button type="button" class="btn btn-secondary btn-sm btn-icon__sm"
                     @click="() => handle_expand_chart('error_rate')"
             >
@@ -342,7 +319,7 @@ const ChartSection = {
             </button>
             <canvas id="error_rate_chart"></canvas>
         </div>
-        <div class="chart-container">
+        <div class="chart-container" v-show="!(hide_absent && filtered_backend_tests.length === 0)">
             <button type="button" class="btn btn-secondary btn-sm btn-icon__sm"
                     @click="() => handle_expand_chart('response_time')"
             >
@@ -350,7 +327,7 @@ const ChartSection = {
             </button>
             <canvas id="response_time_chart"></canvas>
         </div>
-        <div class="chart-container">
+        <div class="chart-container" v-show="!(hide_absent && filtered_ui_tests.length === 0)">
             <button type="button" class="btn btn-secondary btn-sm btn-icon__sm"
                     @click="() => handle_expand_chart('page_speed')"
             >

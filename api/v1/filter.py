@@ -1,4 +1,5 @@
 import json
+from datetime import datetime
 from hashlib import md5
 from queue import Empty
 
@@ -55,7 +56,18 @@ class API(Resource):
     def get(self, project_id: int):
         project = self.module.context.rpc_manager.call.project_get_or_404(project_id=project_id)
         start_time = request.args.get('start_time')
+        if start_time:
+            start_time = datetime.fromisoformat(start_time.strip('Z'))
+
         end_time = request.args.get('end_time')
+        if end_time:
+            end_time = datetime.fromisoformat(end_time.strip('Z'))
+
+        exclude_uids = request.args.get('exclude_uids')
+        if exclude_uids:
+            exclude_uids = exclude_uids.split(',')
+
+        log.info('St %s Et %s Excl %s', start_time, end_time, exclude_uids)
         tests = []
         for plugin in ('backend_performance', 'ui_performance'):
             try:
@@ -65,6 +77,7 @@ class API(Resource):
                     project_id=project.id,
                     start_time=start_time,
                     end_time=end_time,
+                    exclude_uids=exclude_uids
                 )
                 result = process_query_result(plugin, q_data)
                 tests.extend(list(map(lambda i: i.dict(exclude={'total', 'failures'}), result)))
