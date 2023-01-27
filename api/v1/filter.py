@@ -33,6 +33,7 @@ class API(Resource):
             client.create_bucket(bucket_name)
         log.debug('Bucket created [%s]', bucket_name)
         hash_name = md5(file.getbuffer()).hexdigest()
+        # todo: uncomment
         client.upload_file(bucket_name, file, f'{hash_name}.json')
         log.debug('File uploaded [%s.json]', hash_name)
 
@@ -83,36 +84,49 @@ class API(Resource):
             data['unique_groups'][k] = list(v)
 
         if 'ui_performance' in data['unique_groups']:
-            ui_only_tests = filter(
+            ui_only_tests = list(filter(
                 lambda x: x['group'] == 'ui_performance', data['tests']
-            )
-            ui_performance_builder_data = self.module.context.rpc_manager.timeout(
-                3
-            ).ui_performance_compile_builder_data(project.id, list(ui_only_tests))
-            # merge dataset data with test data
-            all_ui_datasets = ui_performance_builder_data.pop('datasets')
-            for i in data['tests']:
-                if i['group'] == 'ui_performance':
-                    datasets = all_ui_datasets.get(i['id'])
-                    if datasets:
-                        i['datasets'] = datasets
-            data['ui_performance_builder_data'] = ui_performance_builder_data
+            ))
+            try:
+                ui_performance_builder_data = self.module.context.rpc_manager.timeout(
+                    3
+                ).ui_performance_compile_builder_data(project.id, ui_only_tests)
+                # merge dataset data with test data
+                all_ui_datasets = ui_performance_builder_data.pop('datasets')
+                loop_earliest_dates = ui_performance_builder_data.pop('loop_earliest_dates')
+                for i in data['tests']:
+                    if i['group'] == 'ui_performance':
+                        datasets = all_ui_datasets.pop(i['id'], None)
+                        if datasets:
+                            i['datasets'] = datasets
+                        led = loop_earliest_dates.pop(i['id'], None)
+                        if led:
+                            for loop_id in led.keys():
+                                led[loop_id] = led[loop_id].isoformat()
+                            i['loop_earliest_dates'] = led
+                data['ui_performance_builder_data'] = ui_performance_builder_data
+            except Empty:
+                ...
 
         if 'backend_performance' in data['unique_groups']:
-            backend_only_tests = filter(
+            backend_only_tests = list(filter(
                 lambda x: x['group'] == 'backend_performance', data['tests']
-            )
+            ))
             try:
                 backend_performance_builder_data = self.module.context.rpc_manager.timeout(
                     3
-                ).backend_performance_compile_builder_data(project.id, list(backend_only_tests))
+                ).backend_performance_compile_builder_data(project.id, backend_only_tests)
                 # merge dataset data with test data
                 all_backend_datasets = backend_performance_builder_data.pop('datasets')
+                aggregated_requests_data = backend_performance_builder_data.pop('aggregated_requests_data')
                 for i in data['tests']:
                     if i['group'] == 'backend_performance':
-                        datasets = all_backend_datasets.get(i['id'])
+                        datasets = all_backend_datasets.pop(i['id'], None)
                         if datasets:
                             i['datasets'] = datasets
+                        requests_data = aggregated_requests_data.pop(i['build_id'], None)
+                        if requests_data:
+                            i['aggregated_requests_data'] = requests_data
                 data['backend_performance_builder_data'] = backend_performance_builder_data
             except Empty:
                 ...

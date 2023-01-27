@@ -9,21 +9,21 @@
     'baselines': '%s'
 } | format(tests, baselines | default({}) | tojson) %}
 
-<div class="card my-3" v-if="window.location.search.indexOf('test') > -1">
+<div class="card my-3 hidden" id="debug-panel">
     <div class="card-header">
-        <a :href="'/api/v1/artifacts/artifact/' + project_id + '/comparison/{{ file_hash }}.json'" download>DOWNLOAD</a>
+        <a :href="'/api/v1/artifacts/artifact/' + project_id + '/comparison/{{ file_hash }}.json'" download>DOWNLOAD JSON</a>
+        <button class="btn btn-secondary mx-3" onclick="$(this).closest('div.card').css({display: 'none'})">HIDE</button>
     </div>
     <div class="card-body d-flex" style="max-height: 300px;">
-        <div style="overflow: scroll;">
+        <div style="overflow: scroll; border: 1px solid var(--basic)" class="col-4">
             <h4>baselines:</h4>
             <pre>{{ baselines | pretty_json }}</pre>
         </div>
-        <div style="overflow: scroll;" class="mx-2">
+        <div style="overflow: scroll; border: 1px solid var(--basic)" class="mx-2 col-4">
             <h3>comparison_data:</h3>
             <pre>{{ comparison_data | pretty_json }}</pre>
         </div>
     </div>
-    <button class="btn btn-secondary" onclick="$(this).closest('div.card').css({display: 'none'})">HIDE</button>
 </div>
 
 

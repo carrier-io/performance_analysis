@@ -26,6 +26,12 @@ def aggregation_alias(name: str) -> str:
 
 
 class BackendAnalysisAggregations(AnalysisAggregations):
+    onexx: int
+    twoxx: int
+    threexx: int
+    fourxx: int
+    fivexx: int
+
     class Config:
         alias_generator = aggregation_alias
 
