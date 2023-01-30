@@ -29,10 +29,21 @@ const chart_options = {
             },
             tooltip: {
                 callbacks: {
-                    // afterTitle: (tooltip_item) => {
-                    //     console.log('tti', tooltip_item)
-                    //     return 'qwerty\nasdf\t123'
-                    // },
+                    title: tooltip_items => {
+                        const date_array = Array.from(
+                            new Set(tooltip_items.map(i => i.raw.tooltip.real_start_time))
+                        ).map(i => new Date(i)).sort((a, b) => a - b)
+                        if (date_array.length === 1) {
+                            return date_array
+                        } else {
+                            return [date_array[0], 'to', date_array.at(-1)]
+                        }
+                    },
+                    afterTitle: tooltip_items => {
+                        const d = new Date(tooltip_items[0].parsed.x)
+                        d.setHours(0)
+                        return `+${d.toLocaleTimeString()} from test start`
+                    },
                     beforeLabel: ({raw}) => {
                         let result = `test: ${raw.tooltip.test_name}; env: ${raw.tooltip.test_env}`
                         if (raw.tooltip.loop) {
@@ -40,6 +51,7 @@ const chart_options = {
                         }
                         return result
                     },
+                    label: ({raw, formattedValue}) => `${raw.tooltip.metric}: ${formattedValue}`,
                     afterLabel: ({raw}) => {
                         if (raw.tooltip.page) {
                             return `page: ${raw.tooltip.page}`
@@ -48,34 +60,41 @@ const chart_options = {
                             return `request: ${raw.tooltip.request}`
                         }
                     },
-                    label: ({raw, formattedValue}) => `${raw.tooltip.metric}: ${formattedValue}`
                 }
             }
         },
         scales: {
             x: {
                 type: 'time',
-                // time: {
-                //     // unit: 'day',
-                //     displayFormats: {
-                //         // day: 'dd MM'
-                //         day: 'P'
-                //     },
-                //     minUnit: 'hour'
-                // },
+                time: {
+                    // unit: 'day',
+                    displayFormats: {
+                        // todo: write more formatters
+                        // day: 'dd MM'
+                        hour: "hh:mm:ss",
+                        minute: "mm:ss",
+                        second: "m:ss",
+                    },
+                    maxUnit: 'hour',
+                    minUnit: 'second'
+                },
                 // grid: {
                 //     display: false
                 // },
                 ticks: {
                     count: 10,
-                    max: 10
+                    max: 10,
+                    source: 'data'
                 },
-                display: false
+                display: 'auto',
+                // min: 0
+                // display: false
             },
             y: {
                 type: 'linear',
                 position: 'left',
                 // text: 'Y label here',
+                // display: 'auto',
                 display: true,
                 grid: {
                     display: true,
@@ -98,9 +117,9 @@ const get_random_color = () => {
 }
 const builder_metrics = {
     [page_constants.ui_name]: {
-        load_time: {name: 'Load Time', color: '#ff0000'},
-        dom: {name: 'DOM', color: '#00ff00'},
-        tti: {name: 'tti', color: '#0000ff'},
+        load_time: {name: 'Load Time', color: get_random_color()},
+        dom: {name: 'DOM', color: get_random_color()},
+        tti: {name: 'tti', color: get_random_color()},
         fcp: {name: 'fcp', color: get_random_color()},
         lcp: {name: 'lcp', color: get_random_color()},
         cls: {name: 'cls', color: get_random_color()},
@@ -322,81 +341,90 @@ const BuilderFilter = {
                 }
             })
         },
-        make_backend_data(request, block_data, tests, selected_metrics) {
+        make_backend_data(test, block_data, selected_actions, selected_metrics) {
             let datasets = []
             let table_data = []
-            selected_metrics.forEach(metric => {
-                let tests_data = []
-                tests.forEach(test => {
-                    if (
-                        test.datasets[this.backend_time_aggregation] !== undefined &&
-                        test.datasets[this.backend_time_aggregation][request] !== undefined
-                    ) {
-                        tests_data = [
-                            ...tests_data,
-                            ...test.datasets[this.backend_time_aggregation][request].map(scoped_dataset => {
-                                const time_delta = new Date(scoped_dataset.time) - new Date(test.start_time)
-                                const {name, color} = builder_metrics[block_data.type][metric]
-                                return {
-                                    x: new Date(this.earliest_date.valueOf() + time_delta),
-                                    y: scoped_dataset[metric],
-                                    tooltip: {
-                                        test_name: test.name,
-                                        test_env: test.test_env,
-                                        test_id: test.id,
-                                        metric: name,
-                                        request: request,
-                                        real_start_time: scoped_dataset.time
-                                    },
-                                    border_color: color
-                                }
-                            })
-                        ]
-                    }
-                })
-                const dataset = {
-                    label: `${request}: ${metric}`,
-                    // data: tests_data.sort((a, b) => {
-                    //     return a.x - b.x
-                    // }),
-                    data: tests_data,
-                    // fill: true,
-                    borderColor: tests_data.map(i => i.border_color || '#ffffff'),
-                    borderWidth: 2,
-                    backgroundColor: get_random_color(),
-                    tension: 0.4,
-                    type: 'line',
-                    showLine: true,
-                    radius: 3,
-                    // hidden: true,
-                    source_block_id: block_data.id
+            if (test.datasets[this.backend_time_aggregation] === undefined) {
+                return [datasets, table_data]
+            }
+            const requests = get_pages_to_display(test, selected_actions)
+            requests.forEach(request => {
+                if (test.datasets[this.backend_time_aggregation][request] !== undefined) {
+                    const request_earliest_date_value = Math.min(
+                        ...test.datasets[this.backend_time_aggregation][request].map(
+                            scoped_dataset => new Date(scoped_dataset.time)
+                        )
+                    )
+                    selected_metrics.forEach(metric => {
+                        const dataset_data = test.datasets[this.backend_time_aggregation][request].map(scoped_dataset => {
+                            const time_delta = new Date(scoped_dataset.time) - request_earliest_date_value
+                            // const time_delta = new Date(test.start_time) - new Date(scoped_dataset.time)
+
+                            const {name, color} = builder_metrics[block_data.type][metric]
+                            return {
+                                // x: new Date(this.earliest_date.valueOf() + time_delta),
+                                x: new Date(time_delta),
+                                y: scoped_dataset[metric],
+                                tooltip: {
+                                    test_name: test.name,
+                                    test_env: test.test_env,
+                                    test_id: test.id,
+                                    metric: name,
+                                    request: request,
+                                    real_start_time: scoped_dataset.time
+                                },
+                                border_color: color
+                            }
+                        }).sort((a, b) => {
+                            return a.x - b.x
+                        })
+                        const dataset = {
+                            label: `${test.name}(${test.id}) ${request}: ${metric}`,
+                            data: dataset_data,
+                            // fill: true,
+                            borderColor: dataset_data.map(i => i.border_color || '#ffffff'),
+                            borderWidth: 2,
+                            backgroundColor: get_random_color(),
+                            tension: 0.4,
+                            type: 'line',
+                            showLine: true,
+                            radius: 4,
+                            // hidden: true,
+                            source_block_id: block_data.id
+                        }
+                        datasets.push(dataset)
+                        const table_data_metrics = test.aggregated_requests_data[request]
+                        table_data.push({
+                            test_id: test.id,
+                            name: test.name,
+                            start_time: new Date(table_data_metrics.time),
+                            page: request,
+                            metric: metric,
+                            source_block_id: block_data.id,
+                            value: table_data_metrics[metric]
+                        })
+                    })
                 }
-                console.log('dataset', dataset)
-                datasets.push(dataset)
-                table_data = [...table_data, ...dataset.data.map(dsi => ({
-                    test_id: dsi.tooltip.test_id,
-                    name: dsi.tooltip.test_name,
-                    start_time: dsi.tooltip.real_start_time,
-                    page: dsi.tooltip.request,
-                    metric: dsi.tooltip.metric,
-                    source_block_id: block_data.id,
-                    value: dsi.y
-                }))]
             })
+
             return [datasets, table_data]
         },
         make_ui_data(test, block_data, selected_actions, selected_metrics) {
             let datasets = []
             let table_data = []
             const pages = get_pages_to_display(test, selected_actions)
-            pages.forEach(page => {
-                Object.entries(test.datasets[page]).forEach(([loop_id, ds]) => {
-                    const metrics_data = selected_metrics.map(metric_data_key => {
-                        // const metric_data_key = builder_metrics[block_data.type][i]
-                        const time_delta = new Date(ds.timestamp) - new Date(test.start_time)
+            selected_metrics.forEach(metric_data_key => {
+                const page_data = pages.reduce((accum, page) => {
+                    Object.entries(test.datasets[page]).forEach(([loop_id, ds]) => {
+                        const time_delta = new Date(ds.timestamp) - new Date(test.loop_earliest_dates['1'])
+                        // const time_delta = new Date(ds.timestamp) - new Date(test.start_time)
                         const {name, color} = builder_metrics[block_data.type][metric_data_key]
-                        return {
-                            x: new Date(this.earliest_date.valueOf() + time_delta),
+                        if (accum[loop_id] === undefined) {
+                            accum[loop_id] = []
+                        }
+                        accum[loop_id].push({
+                            // x: new Date(this.earliest_date.valueOf() + time_delta),
+                            x: new Date(time_delta),
                             y: ds[metric_data_key],
                             tooltip: {
                                 test_name: test.name,
@@ -405,38 +433,46 @@ const BuilderFilter = {
                                 loop: loop_id,
                                 metric: name,
                                 page: page,
-                                real_start_time: ds.timestamp
+                                real_start_time: ds.timestamp,
                             },
                             border_color: color
-                        }
-
+                        })
                     })
+                    return accum
+
+                }, {})
+                Object.entries(page_data).forEach(([loop_id, loop_pages_data]) => {
+                    loop_pages_data = loop_pages_data.sort((a, b) => a.x - b.x)
                     const dataset = {
-                        label: `${test.name}(id:${test.id}) - ${page}`,
-                        data: metrics_data,
-                        fill: true,
-                        borderColor: metrics_data.map(i => i.border_color || '#ffffff'),
-                        borderWidth: 2,
+                        label: `${test.name}(id: ${test.id}) - loop: ${loop_id} - ${metric_data_key}`,
+                        data: loop_pages_data,
+                        fill: false,
+                        borderColor: loop_pages_data.map(i => i.border_color || '#ffffff'),
+                        borderWidth: 1,
                         backgroundColor: get_random_color(),
-                        // tension: 0.1,
-                        type: 'scatter',
+                        tension: 0.5,
+                        // type: 'scatter',
+                        type: 'line',
+                        borderDash: [7, 7],
                         radius: 6,
                         // hidden: true,
                         source_block_id: block_data.id,
-                        showLine: false
+                        showLine: true
                     }
-                    console.log('dataset', dataset)
+                    // console.log('dataset', dataset)
                     datasets.push(dataset)
                     table_data = [...table_data, ...dataset.data.map(dsi => ({
                         test_id: test.id,
                         name: test.name,
                         start_time: dsi.tooltip.real_start_time,
-                        page: page,
+                        page: dsi.tooltip.page,
                         metric: dsi.tooltip.metric,
                         source_block_id: block_data.id,
                         value: dsi.y
                     }))]
                 })
+
+
             })
             return [datasets, table_data]
         },
@@ -447,20 +483,9 @@ const BuilderFilter = {
 
             switch (block_data.type) {
                 case page_constants.backend_name:
-                    selected_actions.forEach(request => {
-                        const [test_name, test_env, action_name] = parse_action(request)
-                        let filtered_backend_tests = this.tests.filter(({group}) => group === block_data.type)
-                        if (test_name !== null && test_env !== null) {
-                            filtered_backend_tests = filtered_backend_tests.filter(test =>
-                                test.name === test_name &&
-                                test.test_env === test_env
-                            )
-                        }
+                    this.tests.filter(({group}) => group === block_data.type).forEach(test => {
                         const [datasets, table_data] = this.make_backend_data(
-                            action_name,
-                            block_data,
-                            filtered_backend_tests,
-                            selected_metrics
+                            test, block_data, selected_actions, selected_metrics
                         )
                         all_datasets = [...all_datasets, ...datasets]
                         all_table_data = [...all_table_data, ...table_data]

@@ -8,7 +8,17 @@
             <Summary-Filter
                     @register="register"
                     instance_name="summary_filter"
-            ></Summary-Filter>
+            >
+
+                <template #cards="{master}">
+                    <Colorful-Cards
+                        :card_data="master.colorful_cards_data"
+                        :selected_aggregation_backend="master.selected_aggregation_backend"
+                        :selected_aggregation_ui="master.selected_aggregation_ui"
+                        :selected_metric_ui="master.selected_metric_ui"
+                    ></Colorful-Cards>
+                </template>
+            </Summary-Filter>
         </div>
     </div>
     {% include 'performance_analysis:main/reports_table.html' %}

@@ -1,0 +1,94 @@
+{% set exclude_uids = exclude_uids | default([]) %}
+<div id="add_tests_modal" class="modal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered flex-column"
+         style="min-width: 1200px;"
+    >
+        <Table-Card
+                @register="register"
+                instance_name="table_reports"
+
+                {#                        :borders='true'#}
+                header='Reports'
+                :table_attributes="{
+                            'data-page-size': 25,
+                            id: 'table_reports',
+                            'data-side-pagination': 'client',
+                            'data-pagination-parts': ['pageInfo', 'pageSize', 'pageList'],
+                            'data-url': '/api/v1/performance_analysis/filter/' + $root.project_id + '?exclude_uids={{ exclude_uids | join(',') }}'
+                        }"
+                container_classes="modal-content flex-grow-1"
+        >
+            <template #actions="{master}">
+                <div class="d-flex justify-content-end">
+                    <button class="btn btn-basic"
+                        @click="async () => {
+                            window.console.log('this works')
+                            const selected_tests = master.table_action('getSelections')
+                            if (selected_tests.length === 0) {
+                                window.showNotify('INFO', 'Select at least one test')
+                                return
+                            }
+                            const existing_tests = registered_components.table_summary.table_action('getData')
+                            window.console.log('this works 2', [...existing_tests, ...selected_tests])
+                            window.console.log('this works 3', window.handle_post_compare)
+                            await window.handle_post_compare(
+                                [...existing_tests, ...selected_tests],
+                                '{{ selected_aggregation_backend }}',
+                                '{{ selected_aggregation_ui }}',
+                                '{{ selected_metric_ui }}'
+                            )
+                        }"
+                    >Add tests</button>
+                    <button class="btn btn-secondary btn-icon btn-icon__purple mx-2"
+                        @click="master.table_action('refresh')"
+                    ><i class="fas fa-sync"></i></button>
+                    <button type="button" class="btn btn-32 close" data-dismiss="modal" aria-label="Close">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </template>
+            <template #table_headers="{master}">
+                <th scope="col" data-checkbox="true"></th>
+                <th data-visible="false" data-field="id">index</th>
+                <th scope="col" data-sortable="true" data-field="name"
+                    data-formatter="report_formatters.name"
+                >
+                    Name
+                </th>
+                <th scope="col" data-sortable="true" data-field="start_time"
+                    data-formatter="report_formatters.start"
+                >
+                    Start
+                </th>
+                <th scope="col" data-sortable="true" data-field="group">
+                    Group
+                </th>
+                <th scope="col" data-sortable="true" data-field="test_env">
+                    Env
+                </th>
+                <th scope="col" data-sortable="true" data-field="error_rate">
+                    Error Rate
+                </th>
+                <th scope="col" data-sortable="true" data-field="duration">
+                    Duration
+                </th>
+                <th scope="col" data-sortable="true" data-field="tags"
+                    data-formatter="reportsTagFormatter"
+                >
+                    Tag
+                </th>
+                <th scope="col" data-sortable="true" data-field="status"
+                    data-formatter="report_formatters.status"
+                >
+                    Status
+                </th>
+            </template>
+
+        </Table-Card>
+{#        <div class="modal-footer d-flex">#}
+{#            <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>#}
+{#            <button type="button" class="btn btn-primary">Save changes</button>#}
+{#            <button class="btn btn-secondary">Add tests</button>#}
+{#        </div>#}
+    </div>
+</div>

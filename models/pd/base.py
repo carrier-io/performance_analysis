@@ -17,6 +17,7 @@ class AnalysisAggregations(BaseModel):
 
 class BaseAnalysisModel(BaseModel):
     id: int
+    uid: str
     group: str
     name: str
     start_time: datetime
