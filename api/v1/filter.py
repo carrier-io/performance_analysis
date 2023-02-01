@@ -89,6 +89,7 @@ class API(Resource):
     def post(self, project_id: int):
         project = self.module.context.rpc_manager.call.project_get_or_404(project_id=project_id)
         data = dict(request.json)
+        log.info('received data %s', data)
         u = defaultdict(set)
         for t in data['tests']:
             u[t['group']].add((t['name'], t['test_env'],))

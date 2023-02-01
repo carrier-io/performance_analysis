@@ -118,8 +118,6 @@ const process_data_slice = (data_slice, options = {}) => {
                 })
                 break
             case page_constants.ui_name:
-                // todo: pass here selected metric in a more sophisticated way
-                // const ui_selected_metric = V.summary_filter?.selected_metric_ui
                 i.metrics[ui_metric_key] !== undefined && Object.entries(
                     i.metrics[ui_metric_key]
                 ).forEach(([k, v]) => {
@@ -236,7 +234,7 @@ const aggregate_data = (grouped_data, group_aggregations_key, data_aggregation_t
     grouped_data.forEach(group => {
         // O(n)
         const aggregation_data = group.aggregations[group_aggregations_key]
-        !aggregation_data && console.warn(
+        !aggregation_data && console.debug(
             'No aggregation "', group_aggregations_key, '" for ', group
         )
         struct.aggregated_tests.push(group.aggregated_tests)
@@ -253,11 +251,11 @@ const aggregate_data = (grouped_data, group_aggregations_key, data_aggregation_t
         // struct.aggregation.max.push(aggregation_callback_map.max(aggregation_data))
         // this will apply aggregation function to metric's min and max aggregated values
         !group.aggregations.min &&
-            console.warn('No aggregation "min" for ', group)
+            console.debug('No aggregation "min" for ', group)
         struct.aggregation.min.push(aggregation_callback(group.aggregations.min))
 
         !group.aggregations.max &&
-            console.warn('No aggregation "max" for ', group)
+            console.debug('No aggregation "max" for ', group)
         struct.aggregation.max.push(aggregation_callback(group.aggregations.max))
         switch (data_aggregation_type) {
             case 'min':
@@ -286,7 +284,7 @@ const change_aggregation_key = (grouped_data, aggregation_type, struct, group_ag
     const aggregation_callback = aggregation_callback_map[aggregation_type] || aggregation_callback_map.mean
     grouped_data.forEach(group => {
         const aggregation_data = group.aggregations[group_aggregations_key]
-        !aggregation_data && console.warn(
+        !aggregation_data && console.debug(
             'No aggregation "', group_aggregations_key, '" data for ', group
         )
         struct.aggregation.min.push(aggregation_callback_map.min(aggregation_data))
@@ -418,6 +416,7 @@ const get_common_chart_options = () => ({
                 grid: {
                     display: false
                 },
+                display: 'auto'
             },
             x: {
                 // type: 'time',
@@ -470,7 +469,7 @@ const get_common_chart_options = () => ({
 
 window.charts = {}
 
-window.handle_post_compare = async (tests, selected_aggregation_backend, selected_aggregation_ui, selected_metric_ui) => {
+window.handle_post_compare = async (tests, selected_aggregation_backend, selected_aggregation_ui, selected_metric_ui, return_response=false) => {
     const response = await fetch(`${api_base}/performance_analysis/filter/${getSelectedProjectId()}`, {
         method: 'POST',
         body: JSON.stringify({
@@ -481,21 +480,24 @@ window.handle_post_compare = async (tests, selected_aggregation_backend, selecte
         }),
         headers: {'Content-Type': 'application/json'},
     })
+
+    !response.ok && showNotify('ERROR', 'Comparison error')
+    if (return_response) {
+        return response
+    }
     if (response.redirected) {
         window.location.href = response.url
-        // todo: remove
-        // window.location.href = response.url + '&' + $.param({test: 1})
     }
 }
 
 const handle_click_compare = async () => {
-    const selections = vueVm.registered_components.table_reports.table_action('getSelections')
+    const selections = V.registered_components.table_reports.table_action('getSelections')
 
     if (selections.length === 0) {
         showNotify('WARNING', 'Select some tests before pressing compare')
         return
     }
-    const {selected_aggregation_backend, selected_aggregation_ui, selected_metric_ui} = vueVm.summary_filter
+    const {selected_aggregation_backend, selected_aggregation_ui, selected_metric_ui} = V.summary_filter
 
     await handle_post_compare(selections, selected_aggregation_backend, selected_aggregation_ui, selected_metric_ui)
 }

@@ -187,25 +187,54 @@ var comparison_formatters = {
 // components
 const FilterBlock = {
     delimiters: ['[[', ']]'],
-    props: ['idx', 'block_id', 'block_type', 'action_options', 'metric_options', 'is_loading'],
-    emits: ['remove', 'apply'],
+    props: [
+        'idx', 'block_id', 'block_type', 'action_options',
+        'metric_options', 'is_loading', 'initial_actions', 'initial_metrics'
+    ],
+    emits: ['remove', 'apply', 'selection_change'],
     data() {
         return {
-            selected_transactions: [],
+            selected_actions: [],
             selected_metrics: [],
-            // is_loading: false,
+        }
+    },
+    mounted() {
+        if (this.pre_selected_actions_indexes.length > 0 || this.pre_selected_metrics_indexes > 0) {
+            this.$nextTick(() => {
+                this.handle_apply_click()
+            })
         }
     },
     methods: {
         handle_apply_click() {
-            this.$emit('apply', this.idx, this.selected_transactions, this.selected_metrics)
+            this.$emit('apply', this.idx, this.selected_actions, this.selected_metrics)
         },
 
         handle_remove() {
             this.$emit('remove', this.idx)
         }
     },
+    watch: {
+        selected_actions() {
+            this.$emit('selection_change', this.$data)
+        },
+        selected_metrics() {
+            this.$emit('selection_change', this.$data)
+        }
+    },
     computed: {
+        pre_selected_actions_indexes() {
+            if (this.initial_actions === undefined) {
+                return []
+            }
+            return this.action_options.map(i => this.initial_actions.indexOf(i)).filter(i => i > -1)
+        },
+        pre_selected_metrics_indexes() {
+            if (this.initial_metrics === undefined) {
+                return []
+            }
+            return Object.keys(this.metric_options).map(i => this.initial_metrics.indexOf(i)).filter(i => i > -1)
+        },
         colored_metric_options() {
             return Object.entries(this.metric_options).map(([k, {name, color}]) => {
                 console.log(k, name, color)
@@ -230,8 +259,9 @@ const FilterBlock = {
             </p>
             <MultiselectDropdown
                 :list_items="action_options"
-                v-model="selected_transactions"
+                v-model="selected_actions"
                 placeholder="Select items"
+                :pre_selected_indexes="pre_selected_actions_indexes"
             ></MultiselectDropdown>
             <p class="font-h5 font-bold my-1 text-gray-800">Metrics</p>
             <MultiselectDropdown
@@ -239,16 +269,17 @@ const FilterBlock = {
                 v-model="selected_metrics"
                 placeholder="Select metrics"
                 return_key="data_key"
+                :pre_selected_indexes="pre_selected_metrics_indexes"
             ></MultiselectDropdown>
             <div class="pt-3">
                 <button class="btn btn-secondary"
                     style="position: relative; padding-right: 24px"
-                    :disabled="is_loading || (selected_transactions.length === 0 || selected_metrics.length === 0)"
+                    :disabled="is_loading || (selected_actions.length === 0 || selected_metrics.length === 0)"
                     @click="handle_apply_click"
                 >
                     Apply
                     <i class="spinner-loader" style="position: absolute; top: 8px; right: 5px"
-                        v-show="is_loading"
+                        v-if="is_loading"
                     ></i>
                 </button>
             </div>
@@ -266,7 +297,8 @@ const BuilderFilter = {
     components: {
         'FilterBlock': FilterBlock,
     },
-    props: ['unique_groups', 'ui_performance_builder_data', 'backend_performance_builder_data', 'tests', 'backend_time_aggregation'],
+    props: ['unique_groups', 'ui_performance_builder_data', 'backend_performance_builder_data',
+        'tests', 'backend_time_aggregation'],
     data() {
         return {
             blocks: [],
@@ -275,7 +307,8 @@ const BuilderFilter = {
             is_loading: false,
             all_tests_backend_requests: [],
             all_tests_ui_pages: [],
-            earliest_date: new Date()
+            earliest_date: new Date(),
+            filter_selections: {}
         }
     },
     async mounted() {
@@ -299,6 +332,24 @@ const BuilderFilter = {
 
         window.chart_builder = new Chart('builder_chart', chart_options)
         $('html').css({'scroll-behavior': 'smooth'}) // todo: maybe we don't need that
+
+
+        const comparison_hash = new URLSearchParams(location.search).get('source')
+        const stored_filters = JSON.parse(sessionStorage.getItem(comparison_hash))
+        if (stored_filters !== null) {
+            this.blocks = stored_filters.map(f => {
+                f.is_loading = false
+                return f
+            })
+            sessionStorage.removeItem(comparison_hash)
+        }
+        this.$root.custom_data.get_filter_blocks_state = () => this.blocks.map(({id, type}) => {
+            const {
+                selected_actions: initial_actions,
+                selected_metrics: initial_metrics
+            } = this.filter_selections[id]
+            return {id, type, initial_actions, initial_metrics}
+        })
     },
     methods: {
         handle_remove(idx) {
@@ -566,7 +617,7 @@ const BuilderFilter = {
             </div>
             <hr class="my-0">
             <div class="builder_filter_blocks">
-                <div v-for="({id, type, is_loading}, index) in blocks" :key="id">
+                <div v-for="({id, type, is_loading, initial_actions, initial_metrics}, index) in blocks" :key="id">
                     <hr class="my-0" v-if="index > 0">
                     <FilterBlock
                        :idx="index"
@@ -575,6 +626,9 @@ const BuilderFilter = {
                        :is_loading="is_loading"
                        :action_options="get_action_options(type)"
                        :metric_options="get_metric_options(type)"
+                       :initial_actions="initial_actions"
+                       :initial_metrics="initial_metrics"
+                       @selection_change="data => filter_selections[id] = data"
                        @remove="handle_remove"
                        @apply="handle_apply"
                     >

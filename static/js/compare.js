@@ -9,7 +9,7 @@ var baseline_formatters = {
     set_row_baseline: row => {
         try {
             if (row.baseline === undefined) {
-                row.baseline = window.baselines[row.group][row.name][row.test_env]
+                row.baseline = V.custom_data.baselines[row.group][row.name][row.test_env]
                 console.log('Baseline set for', row.id, row.name, row.baseline)
             } else {
                 console.debug('Baseline already exists', row.name)
@@ -84,5 +84,27 @@ var baseline_formatters = {
 }
 
 $(document).on('vue_init', () => {
-    window.baselines = JSON.parse(V.registered_components.table_summary.table_attributes.baselines)
+    V.custom_data.baselines = JSON.parse(V.registered_components.table_summary.table_attributes.baselines)
+    V.custom_data.handle_add_tests = async (selected_tests, page_choices) => {
+        if (selected_tests.length === 0) {
+            showNotify('INFO', 'Select at least one test')
+            return
+        }
+        const existing_tests = V.registered_components.table_summary.table_action('getData')
+        const [selected_aggregation_backend, selected_aggregation_ui, selected_metric_ui] = page_choices
+        const existing_filters = V.custom_data.get_filter_blocks_state()
+        const resp = await window.handle_post_compare(
+            [...existing_tests, ...selected_tests],
+            selected_aggregation_backend, selected_aggregation_ui, selected_metric_ui,
+            existing_filters.length > 0
+        )
+        if (resp.redirected) {
+            const target_hash = new URL(resp.url).searchParams.get('source')
+            sessionStorage.setItem(target_hash, JSON.stringify(existing_filters))
+            window.location.href = resp.url
+        } else {
+            console.error('Not receiving redirect somehow. Check the api')
+        }
+    }
 })
+

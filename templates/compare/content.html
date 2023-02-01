@@ -12,8 +12,10 @@
 
 <div class="card my-3 hidden" id="debug-panel">
     <div class="card-header">
-        <a :href="'/api/v1/artifacts/artifact/' + project_id + '/comparison/{{ file_hash }}.json'" download>DOWNLOAD JSON</a>
-        <button class="btn btn-secondary mx-3" onclick="$(this).closest('div.card').css({display: 'none'})">HIDE</button>
+        <a :href="'/api/v1/artifacts/artifact/' + project_id + '/comparison/{{ file_hash }}.json'" download>DOWNLOAD
+            JSON</a>
+        <button class="btn btn-secondary mx-3" onclick="$(this).closest('div.card').css({display: 'none'})">HIDE
+        </button>
     </div>
     <div class="card-body d-flex" style="max-height: 300px;">
         <div style="overflow: scroll; border: 1px solid var(--basic)" class="col-4">
@@ -37,9 +39,19 @@
             :table_attributes='{{ table_attrs }}'
     >
         <template #actions="{master}">
-
+            <div class="d-flex justify-content-end">
+                <div data-toggle="tooltip" data-placement="left" title="" data-original-title="Add tests to comparison">
+                    <button class="btn btn-basic btn-icon" data-toggle="modal" data-target="#add_tests_modal">
+                        <i class="fa fa-plus fa-lg"></i>
+                    </button>
+                </div>
+                <button type="button" class="btn btn-secondary btn-icon btn-icon__purple ml-2 disabled" disabled>
+                    <i class="icon__18x18 icon-delete"></i>
+                </button>
+            </div>
         </template>
         <template #table_headers="{master}">
+{#            <th scope="col" data-checkbox="true"></th>#}
             <th data-visible="false" data-field="id">index</th>
             <th scope="col" data-sortable="true" data-field="name"
                 data-formatter="report_formatters.name"
@@ -79,24 +91,24 @@
 
     <div class="card my-3">
         <div class="card-header">
-{#                        <div class="selectpicker-titled"#}
-{#                             v-show="selected_filters.includes('Backend Aggregation')"#}
-{#                        >#}
-{#                            <span class="font-h6 font-semibold px-3 item__left text-uppercase">aggr. BE</span>#}
-{#                            <select class="selectpicker flex-grow-1" data-style="item__right"#}
-{#                                    :disabled="!backend_test_selected"#}
-{#                                    v-model="selected_aggregation_backend"#}
-{#                            >#}
-{#                                <option value="min">min</option>#}
-{#                                <option value="max">max</option>#}
-{#                                <option value="mean">mean</option>#}
-{#                                <option value="pct50">50 pct</option>#}
-{#                                <option value="pct75">75 pct</option>#}
-{#                                <option value="pct90">90 pct</option>#}
-{#                                <option value="pct95">95 pct</option>#}
-{#                                <option value="pct99">99 pct</option>#}
-{#                            </select>#}
-{#                        </div>#}
+            {#                        <div class="selectpicker-titled"#}
+            {#                             v-show="selected_filters.includes('Backend Aggregation')"#}
+            {#                        >#}
+            {#                            <span class="font-h6 font-semibold px-3 item__left text-uppercase">aggr. BE</span>#}
+            {#                            <select class="selectpicker flex-grow-1" data-style="item__right"#}
+            {#                                    :disabled="!backend_test_selected"#}
+            {#                                    v-model="selected_aggregation_backend"#}
+            {#                            >#}
+            {#                                <option value="min">min</option>#}
+            {#                                <option value="max">max</option>#}
+            {#                                <option value="mean">mean</option>#}
+            {#                                <option value="pct50">50 pct</option>#}
+            {#                                <option value="pct75">75 pct</option>#}
+            {#                                <option value="pct90">90 pct</option>#}
+            {#                                <option value="pct95">95 pct</option>#}
+            {#                                <option value="pct99">99 pct</option>#}
+            {#                            </select>#}
+            {#                        </div>#}
         </div>
         <div class="card-body d-flex flex-column">
             <Chart-Section
@@ -120,9 +132,6 @@
             :table_attributes='{{ table_attrs }}'
     >
         <template #actions="{master}">
-            <div class="d-flex justify-content-end">
-                <button class="btn btn-basic" data-toggle="modal" data-target="#add_tests_modal">Add tests</button>
-            </div>
         </template>
         <template #table_headers="{master}">
             <th data-visible="false" data-field="id">index</th>
@@ -173,8 +182,7 @@
         exclude_uids=comparison_data.get('tests', []) | map(attribute='uid') | list,
         selected_aggregation_backend=selected_aggregation_backend,
         selected_aggregation_ui=selected_aggregation_ui,
-        selected_metric_ui=selected_metric_ui
-    %}
+        selected_metric_ui=selected_metric_ui %}
         {% include 'performance_analysis:compare/add_tests_modal.html' %}
     {% endwith %}
 
@@ -184,19 +192,19 @@
             <h3>Comparison builder</h3>
             <div class="ml-3">
                 {% if 'backend_performance' in comparison_data["unique_groups"].keys() %}
-                <div class="selectpicker-titled">
-                    <span class="font-h6 font-semibold px-3 item__left text-uppercase">Time aggregation</span>
-                    <select class="selectpicker flex-grow-1" data-style="item__right"
-                            v-model="custom_data.time_aggregation"
-                    >
-                        <option value="1s">1s</option>
-                        <option value="5s">5s</option>
-                        <option value="30s">30s</option>
-                        <option value="1m">1m</option>
-                        <option value="5m">5m</option>
-                        <option value="10m">10m</option>
-                    </select>
-                </div>
+                    <div class="selectpicker-titled">
+                        <span class="font-h6 font-semibold px-3 item__left text-uppercase">Time aggregation</span>
+                        <select class="selectpicker flex-grow-1" data-style="item__right"
+                                v-model="custom_data.time_aggregation"
+                        >
+                            <option value="1s">1s</option>
+                            <option value="5s">5s</option>
+                            <option value="30s">30s</option>
+                            <option value="1m">1m</option>
+                            <option value="5m">5m</option>
+                            <option value="10m">10m</option>
+                        </select>
+                    </div>
                 {% endif %}
             </div>
         </div>
@@ -253,18 +261,18 @@
                 Value
             </th>
             <th scope="col" data-sortable="true" data-field="source_block_id"
-            data-formatter="comparison_formatters.source_block_id">
+                data-formatter="comparison_formatters.source_block_id">
                 Source
             </th>
-<!--            <th scope="col" data-sortable="true" data-field="value">-->
-<!--                Aggregation min-->
-<!--            </th>-->
-<!--            <th scope="col" data-sortable="true" data-field="value">-->
-<!--                Aggregation mean-->
-<!--            </th>-->
-<!--            <th scope="col" data-sortable="true" data-field="value">-->
-<!--                Aggregation max-->
-<!--            </th>-->
+            <!--            <th scope="col" data-sortable="true" data-field="value">-->
+            <!--                Aggregation min-->
+            <!--            </th>-->
+            <!--            <th scope="col" data-sortable="true" data-field="value">-->
+            <!--                Aggregation mean-->
+            <!--            </th>-->
+            <!--            <th scope="col" data-sortable="true" data-field="value">-->
+            <!--                Aggregation max-->
+            <!--            </th>-->
         </template>
     </Table-Card>
 </div>
