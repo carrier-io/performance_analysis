@@ -469,14 +469,17 @@ const get_common_chart_options = () => ({
 
 window.charts = {}
 
-window.handle_post_compare = async (tests, selected_aggregation_backend, selected_aggregation_ui, selected_metric_ui, return_response=false) => {
+window.handle_post_compare = async (tests, options = {}) => {
+    const {merge_with_source, return_response} = options
+// window.handle_post_compare = async (tests, selected_aggregation_backend, selected_aggregation_ui, selected_metric_ui, return_response=false) => {
     const response = await fetch(`${api_base}/performance_analysis/filter/${getSelectedProjectId()}`, {
         method: 'POST',
         body: JSON.stringify({
             tests,
-            selected_aggregation_backend,
-            selected_aggregation_ui,
-            selected_metric_ui
+            merge_with_source
+            // selected_aggregation_backend,
+            // selected_aggregation_ui,
+            // selected_metric_ui
         }),
         headers: {'Content-Type': 'application/json'},
     })
@@ -497,7 +500,8 @@ const handle_click_compare = async () => {
         showNotify('WARNING', 'Select some tests before pressing compare')
         return
     }
-    const {selected_aggregation_backend, selected_aggregation_ui, selected_metric_ui} = V.summary_filter
+    // const {selected_aggregation_backend, selected_aggregation_ui, selected_metric_ui} = V.summary_filter
 
-    await handle_post_compare(selections, selected_aggregation_backend, selected_aggregation_ui, selected_metric_ui)
+    // await handle_post_compare(selections, selected_aggregation_backend, selected_aggregation_ui, selected_metric_ui)
+    await handle_post_compare(selections)
 }

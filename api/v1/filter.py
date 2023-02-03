@@ -1,18 +1,17 @@
 import json
 from datetime import datetime
-from hashlib import md5
 from queue import Empty
+from typing import Optional
 
 from flask_restful import Resource
 from flask import request, jsonify, redirect, url_for
-from io import BytesIO
 from collections import defaultdict
 
 from pylon.core.tools import log
 
-from tools import MinioClient, api_tools
+from ...utils import process_query_result, upload_to_minio, merge_comparisons, ComparisonDataStruct
 
-from ...utils import process_query_result
+from tools import MinioClient
 
 
 class API(Resource):
@@ -22,36 +21,6 @@ class API(Resource):
 
     def __init__(self, module):
         self.module = module
-
-    def __upload_to_json(self, project, data: dict) -> str:
-        bucket_name = self.module.descriptor.config.get('bucket_name', 'comparison')
-        file = BytesIO()
-        file.write(json.dumps(data, ensure_ascii=False).encode('utf-8'))
-        file.seek(0)
-        log.debug('File created')
-        client = MinioClient(project=project)
-        if bucket_name not in client.list_bucket():
-            client.create_bucket(bucket_name)
-        log.debug('Bucket created [%s]', bucket_name)
-        hash_name = md5(file.getbuffer()).hexdigest()
-        # todo: uncomment
-        client.upload_file(bucket_name, file, f'{hash_name}.json')
-        log.debug('File uploaded [%s.json]', hash_name)
-
-        # todo: retention
-        # from datetime import datetime, timedelta
-        # date = datetime.utcnow().replace(
-        #     hour=0, minute=0, second=0, microsecond=0,
-        # ) + timedelta(minutes=2)
-        # from minio.commonconfig import GOVERNANCE
-        # from minio.retention import Retention
-        # result = client.put_object(
-        #     bucket_name=bucket_name,
-        #     object_name="my-object",
-        #     data=file,
-        #     retention=Retention(GOVERNANCE, date),
-        # )
-        return hash_name
 
     def get(self, project_id: int):
         project = self.module.context.rpc_manager.call.project_get_or_404(project_id=project_id)
@@ -86,41 +55,21 @@ class API(Resource):
 
         return jsonify(tests)
 
+    def __merge_comparisons(self):
+        ...
+
     def post(self, project_id: int):
         project = self.module.context.rpc_manager.call.project_get_or_404(project_id=project_id)
         data = dict(request.json)
-        log.info('received data %s', data)
+        log.info('')
+        log.info('received data %s', json.dumps(data))
+        log.info('')
         u = defaultdict(set)
         for t in data['tests']:
             u[t['group']].add((t['name'], t['test_env'],))
         data['unique_groups'] = dict()
         for k, v in u.items():
             data['unique_groups'][k] = list(v)
-
-        if 'ui_performance' in data['unique_groups']:
-            ui_only_tests = list(filter(
-                lambda x: x['group'] == 'ui_performance', data['tests']
-            ))
-            try:
-                ui_performance_builder_data = self.module.context.rpc_manager.timeout(
-                    3
-                ).ui_performance_compile_builder_data(project.id, ui_only_tests)
-                # merge dataset data with test data
-                all_ui_datasets = ui_performance_builder_data.pop('datasets')
-                loop_earliest_dates = ui_performance_builder_data.pop('loop_earliest_dates')
-                for i in data['tests']:
-                    if i['group'] == 'ui_performance':
-                        datasets = all_ui_datasets.pop(i['id'], None)
-                        if datasets:
-                            i['datasets'] = datasets
-                        led = loop_earliest_dates.pop(i['id'], None)
-                        if led:
-                            for loop_id in led.keys():
-                                led[loop_id] = led[loop_id].isoformat()
-                            i['loop_earliest_dates'] = led
-                data['ui_performance_builder_data'] = ui_performance_builder_data
-            except Empty:
-                ...
 
         if 'backend_performance' in data['unique_groups']:
             backend_only_tests = list(filter(
@@ -133,6 +82,7 @@ class API(Resource):
                 # merge dataset data with test data
                 all_backend_datasets = backend_performance_builder_data.pop('datasets')
                 aggregated_requests_data = backend_performance_builder_data.pop('aggregated_requests_data')
+                data['backend_performance_builder_data'] = backend_performance_builder_data
                 for i in data['tests']:
                     if i['group'] == 'backend_performance':
                         datasets = all_backend_datasets.pop(i['id'], None)
@@ -141,11 +91,57 @@ class API(Resource):
                         requests_data = aggregated_requests_data.pop(i['build_id'], None)
                         if requests_data:
                             i['aggregated_requests_data'] = requests_data
-                data['backend_performance_builder_data'] = backend_performance_builder_data
             except Empty:
                 ...
 
-        hash_name = self.__upload_to_json(project, data)
+        if 'ui_performance' in data['unique_groups']:
+            ui_only_tests = list(filter(
+                lambda x: x['group'] == 'ui_performance', data['tests']
+            ))
+            try:
+                ui_performance_builder_data = self.module.context.rpc_manager.timeout(
+                    3
+                ).ui_performance_compile_builder_data(project.id, ui_only_tests)
+                # merge dataset data with test data
+                all_ui_datasets = ui_performance_builder_data.pop('datasets')
+                loop_earliest_dates = ui_performance_builder_data.pop('loop_earliest_dates')
+                data['ui_performance_builder_data'] = ui_performance_builder_data
+                for i in data['tests']:
+                    if i['group'] == 'ui_performance':
+                        datasets = all_ui_datasets.pop(i['id'], None)
+                        if datasets:
+                            i['datasets'] = datasets
+                        led = loop_earliest_dates.pop(i['id'], None)
+                        if led:
+                            for loop_id in led.keys():
+                                led[loop_id] = led[loop_id].isoformat()
+                            i['loop_earliest_dates'] = led
+            except Empty:
+                ...
+
+        # if we add tests to existing comparison data we do not want
+        # to recalculate all comparison data. We use existing one and merge with new
+        merge_source_hash: Optional[str] = request.json.get('merge_with_source')
+        if merge_source_hash:
+            source_data = MinioClient(project).download_file(
+                self.module.descriptor.config.get('bucket_name', 'comparison'),
+                f'{merge_source_hash}.json'
+            )
+            source_data = source_data.decode('utf-8')
+            source_data = json.loads(source_data)
+            data = merge_comparisons(source_data, data)
+        else:
+            # Normalize output
+            data = ComparisonDataStruct.parse_obj(data)
+
+        hash_name = upload_to_minio(
+            project,
+            data.json(
+                exclude_none=True, exclude_defaults=True,
+                by_alias=True, sort_keys=True
+            ).encode('utf-8'),
+            bucket_name=self.module.descriptor.config.get('bucket_name', 'comparison')
+        )
 
         url_base = url_for("theme.index", _external=True, _scheme=request.headers.get("X-Forwarded-Proto", 'http'))
         return redirect(f'{url_base}-/performance/analysis/compare?source={hash_name}')

@@ -84,7 +84,7 @@ const chart_options = {
                 ticks: {
                     count: 10,
                     max: 10,
-                    source: 'data'
+                    // source: 'data'
                 },
                 display: 'auto',
                 // min: 0
@@ -104,6 +104,7 @@ const chart_options = {
                 // ticks: {
                 //     count: 10
                 // }
+                min: 0
             },
         }
     },
