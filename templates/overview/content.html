@@ -1,0 +1,25 @@
+{% set source_container_id = "source_card" %}
+
+<Overview-Page
+        @register="register"
+        instance_name="overview_page"
+></Overview-Page>
+
+    {% with modal_id='create_backend_modal_overview', source_container_id = "source_card_ov" %}
+        {% include 'backend_performance:backend_performance/create.html' %}
+    {% endwith %}
+    {% with modal_id='run_backend_modal_overview' %}
+        {% include 'backend_performance:backend_performance/runtest.html' %}
+    {% endwith %}
+    {% with modal_id='create_ui_modal_overview', runners=ui_runners, source_container_id = "source_card_ov_ui" %}
+        {% include 'ui_performance:core/create.html' %}
+    {% endwith %}
+    {% with modal_id='run_ui_modal_overview', runners=ui_runners %}
+        {% include 'ui_performance:core/runtest.html' %}
+    {% endwith %}
+<Docker-Command-Modal
+    @register="register"
+    instance_name="docker_command"
+    modal_id="docker_command_modal"
+>
+</Docker-Command-Modal>

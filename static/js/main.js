@@ -25,13 +25,130 @@ const get_mapped_name = (name, is_from_backend = undefined) => {
     }
 }
 
+var test_formatters = {
+    job_type(value, row, index) {
+        if (row.job_type === "perfmeter") {
+            return '<img src="/design-system/static/assets/ico/jmeter.png" width="20">'
+        } else if (row.job_type === "perfgun") {
+            return '<img src="/design-system/static/assets/ico/gatling.png" width="20">'
+        } else {
+            return value
+        }
+    },
+
+    actions(value, row, index) {
+        return `
+            <div class="d-flex justify-content-end">
+                <button type="button" class="btn btn-default btn-xs btn-table btn-icon__xs test_run mr-2" 
+                        data-toggle="tooltip" data-placement="top" title="Run Test">
+                    <i class="icon__18x18 icon-run"></i>
+                </button>
+                <div class="dropdown_multilevel">
+                    <button class="btn btn-default btn-xs btn-table btn-icon__xs" type="button"
+                            data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        <i class="icon__18x18 icon-menu-dots"></i>
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li class="dropdown-menu_item dropdown-item d-flex align-items-center">
+                            <span class="w-100 font-h5 d-flex align-items-center"><i class="icon__18x18 icon-integrate mr-1"></i>Integrate with</span>
+                            <i class="icon__16x16 icon-sort"></i>
+                            <ul class="submenu dropdown-menu">
+                                <li class="dropdown-menu_item dropdown-item d-flex align-items-center int_docker">
+                                    <span class="w-100 font-h5">Docker command</span>
+                                </li>
+                            </ul>
+                        </li>
+                        <li class="dropdown-menu_item dropdown-item d-flex align-items-center test_edit">
+                            <i class="icon__18x18 icon-settings mr-2"></i><span class="w-100 font-h5">Settings</span>
+                        </li>
+                        <li class="dropdown-menu_item dropdown-item d-flex align-items-center test_delete">
+                            <i class="icon__18x18 icon-delete mr-2"></i><span class="w-100 font-h5">Delete</span>
+                        </li>
+                    </ul>
+                </div>
+                
+            </div>
+        `
+    },
+    name_style(value, row, index) {
+        return {
+            css: {
+                "max-width": "140px",
+                "overflow": "hidden",
+                "text-overflow": "ellipsis",
+                "white-space": "nowrap"
+            }
+        }
+    },
+    cell_style(value, row, index) {
+        return {
+            css: {
+                "min-width": "165px"
+            }
+        }
+    },
+    action_events: {
+        "click .test_run": function (e, value, row, index) {
+            // apiActions.run(row.id, row.name)
+            console.log('test_run', row)
+            let component_proxy;
+            if (row.test_type === 'backend_performance')
+                component_proxy = vueVm.registered_components.run_backend_modal_overview
+            else if (row.test_type === 'ui_performance')
+                component_proxy = vueVm.registered_components.run_ui_modal_overview
+            component_proxy.set({...row, test_parameters: [...JSON.parse(JSON.stringify(row.test_parameters))]})
+        },
+
+        "click .test_edit": function (e, value, row, index) {
+            console.log('test_edit', row)
+            let component_proxy
+            if (row.test_type === 'backend_performance')
+                component_proxy = vueVm.registered_components.create_backend_modal_overview
+            else if (row.test_type === 'ui_performance')
+                component_proxy = vueVm.registered_components.create_ui_modal_overview
+            component_proxy.mode = 'update'
+            component_proxy.set(row)
+        },
+
+        "click .test_delete": function (e, value, row, index) {
+            console.log('test_delete', row)
+            test_delete(row.id)
+
+        },
+
+        "click .int_docker": async function (e, value, row, index) {
+            const resp = await fetch(`/api/v1/backend_performance/test/${row.project_id}/${row.id}/?output=docker`)
+            if (resp.ok) {
+                const {cmd} = await resp.json()
+                vueVm.docker_command.cmd = cmd
+                vueVm.docker_command.is_open = true
+            } else {
+                showNotify('ERROR', 'Error getting docker command')
+            }
+        }
+
+    }
+}
+
 var report_formatters = {
-    name(value) {
-        // todo: link to results page
-        return value
+    name(value, row, index) {
+        const test_type = row.group === "ui_performance" ? "ui" : "backend"
+        return `<a class="test form-control-label font-h5" 
+                   href="../${test_type}/results?result_id=${row.id}" role="button">
+                    ${row.name}
+                </a>`
     },
     start(value, row, index) {
         return new Date(value).toLocaleString()
+    },
+    job_type(value, row, index) {
+        if (value === "perfmeter") {
+            return '<img src="/design-system/static/assets/ico/jmeter.png" width="20">'
+        } else if (value === "perfgun") {
+            return '<img src="/design-system/static/assets/ico/gatling.png" width="20">'
+        } else {
+            return value
+        }
     },
     status(value, row, index) {
         switch (value.toLowerCase()) {
@@ -253,11 +370,11 @@ const aggregate_data = (grouped_data, group_aggregations_key, data_aggregation_t
         // struct.aggregation.max.push(aggregation_callback_map.max(aggregation_data))
         // this will apply aggregation function to metric's min and max aggregated values
         !group.aggregations.min &&
-            console.warn('No aggregation "min" for ', group)
+        console.warn('No aggregation "min" for ', group)
         struct.aggregation.min.push(aggregation_callback(group.aggregations.min))
 
         !group.aggregations.max &&
-            console.warn('No aggregation "max" for ', group)
+        console.warn('No aggregation "max" for ', group)
         struct.aggregation.max.push(aggregation_callback(group.aggregations.max))
         switch (data_aggregation_type) {
             case 'min':

@@ -62,6 +62,14 @@ class Module(module.ModuleModel):
             prefix="performance_analysis_",
             weight=4,
         )
+        theme.register_subsection(
+            "performance", "overview",
+            "Overview",
+            title="Overview",
+            kind="slot",
+            prefix="performance_analysis_overview_",
+            weight=6,
+        )
 
         theme.register_page(
             "performance", "analysis",
