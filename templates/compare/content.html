@@ -226,6 +226,7 @@
                     {% if 'backend_performance' in comparison_data["unique_groups"].keys() %}
                     :backend_time_aggregation='custom_data.time_aggregation'
                     {% endif %}
+                    :persistent_filters='{{ persistent_filters | default([]) | tojson }}'
             ></Builder-Filter>
         </div>
     </div>

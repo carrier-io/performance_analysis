@@ -36,7 +36,7 @@ class API(Resource):
         if exclude_uids:
             exclude_uids = exclude_uids.split(',')
 
-        log.info('St %s Et %s Excl %s', start_time, end_time, exclude_uids)
+        # log.info('St %s Et %s Excl %s', start_time, end_time, exclude_uids)
         tests = []
         for plugin in ('backend_performance', 'ui_performance'):
             try:
@@ -55,15 +55,12 @@ class API(Resource):
 
         return jsonify(tests)
 
-    def __merge_comparisons(self):
-        ...
-
     def post(self, project_id: int):
         project = self.module.context.rpc_manager.call.project_get_or_404(project_id=project_id)
         data = dict(request.json)
-        log.info('')
-        log.info('received data %s', json.dumps(data))
-        log.info('')
+        # log.info('')
+        # log.info('received data %s', json.dumps(data))
+        # log.info('')
         u = defaultdict(set)
         for t in data['tests']:
             u[t['group']].add((t['name'], t['test_env'],))
@@ -136,12 +133,13 @@ class API(Resource):
 
         hash_name = upload_to_minio(
             project,
-            data.json(
+            data=data.json(
                 exclude_none=True, exclude_defaults=True,
                 by_alias=True, sort_keys=True
             ).encode('utf-8'),
             bucket_name=self.module.descriptor.config.get('bucket_name', 'comparison')
         )
+        hash_name = hash_name.replace('.json', '')  # todo: replace this mock
 
-        url_base = url_for("theme.index", _external=True, _scheme=request.headers.get("X-Forwarded-Proto", 'http'))
+        url_base = url_for("theme.index", _external=True, _scheme=request.headers.get('X-Forwarded-Proto', 'http'))
         return redirect(f'{url_base}-/performance/analysis/compare?source={hash_name}')

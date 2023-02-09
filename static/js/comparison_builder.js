@@ -13,11 +13,20 @@ const chart_options = {
                 onHover: (event, legendItem, legend) => {
                     // console.log(event, legendItem, legend)
                     legend.chart.data.datasets[legendItem.datasetIndex].radius = 12
+                    // let tooltips = []
+                    // for (let i = 0; i < legend.chart.data.datasets[legendItem.datasetIndex].data.length; i++) {
+                    //     tooltips.push({
+                    //         datasetIndex: legendItem.datasetIndex,
+                    //         index: i
+                    //     })
+                    // }
+                    // legend.chart.tooltip.setActiveElements(tooltips)
                     legend.chart.update()
                 },
                 onLeave: (event, legendItem, legend) => {
                     // console.log(event, legendItem, legend)
                     legend.chart.data.datasets[legendItem.datasetIndex].radius = 6
+                    // legend.chart.tooltip.setActiveElements([])
                     legend.chart.update()
                 },
                 labels: {
@@ -299,7 +308,7 @@ const BuilderFilter = {
         'FilterBlock': FilterBlock,
     },
     props: ['unique_groups', 'ui_performance_builder_data', 'backend_performance_builder_data',
-        'tests', 'backend_time_aggregation'],
+        'tests', 'backend_time_aggregation', 'persistent_filters'],
     data() {
         return {
             blocks: [],
@@ -337,13 +346,22 @@ const BuilderFilter = {
 
         const comparison_hash = new URLSearchParams(location.search).get('source')
         const stored_filters = JSON.parse(sessionStorage.getItem(comparison_hash))
+        debugger
         if (stored_filters !== null) {
-            this.blocks = stored_filters.map(f => {
+            const persistent_filters_ids = this.persistent_filters.map(f => f.id)
+            this.blocks = stored_filters.filter(f => {
+                persistent_filters_ids.includes(f.id)
+            }).map(f => {
                 f.is_loading = false
                 return f
             })
             sessionStorage.removeItem(comparison_hash)
         }
+        this.blocks = this.persistent_filters.map(f => {
+            f.is_loading = false
+            return f
+        })
+
         this.$root.custom_data.get_filter_blocks_state = () => this.blocks.map(({id, type}) => {
             const {
                 selected_actions: initial_actions,

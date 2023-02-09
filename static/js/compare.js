@@ -10,12 +10,12 @@ var baseline_formatters = {
         try {
             if (row.baseline === undefined) {
                 row.baseline = V.custom_data.baselines[row.group][row.name][row.test_env]
-                console.log('Baseline set for', row.id, row.name, row.baseline)
+                console.debug('Baseline set for', row.id, row.name, row.baseline)
             } else {
                 console.debug('Baseline already exists', row.name)
             }
         } catch {
-            console.log('No Baseline found', row.name)
+            console.debug('No Baseline found', row.name)
         }
     },
     cell_value: value => {
