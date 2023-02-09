@@ -16,7 +16,7 @@ const SummaryFilter = {
             selected_aggregation_backend: 'pct95',
             selected_aggregation_ui: 'mean',
             selected_metric_ui: 'total',
-            start_time: 'all',
+            start_time: 'last_week',
             end_time: undefined,
             selected_filters: [],
         }
@@ -126,29 +126,12 @@ const SummaryFilter = {
             )
             if (resp.ok) {
                 this.all_data = await resp.json()
-                // this.all_data.push({
-                //     metrics: new Proxy({}, {
-                //         get() {
-                //             return {
-                //                 max: 789,
-                //                 mean: 456,
-                //                 min: 123,
-                //             }
-                //         }
-                //     }),
-                //     "duration": 95,
-                //     "group": page_constants.ui_name,
-                //     "name": "mocked_ui_test",
-                //     "start_time": new Date().toISOString(),
-                //     "status": "Finished",
-                //     "tags": ['some_tag_1', 'some_tag_2'],
-                //     "test_env": "mocked_1",
-                //     "test_type": "mocked_1",
-                //     id: 0
-                // }) // todo: remove
             } else {
                 showNotify('ERROR', 'Error fetching groups')
             }
+            vueVm.registered_components.table_reports_overview?.table_action('refresh', {
+                query: this.timeframe
+            })
             this.is_loading = false
         },
         // handle_apply_click() {
@@ -157,7 +140,39 @@ const SummaryFilter = {
 
         handle_filter_changed() {
             vueVm.registered_components.table_reports?.table_action('load', this.filtered_tests)
-            // this.handle_update_charts()
+            vueVm.registered_components.table_reports_overview?.table_action('filterBy', {
+                report_types: this.selected_groups,
+                type: this.selected_test_types,
+                name: this.selected_tests,
+                environment: this.selected_test_envs,
+            }, {
+                'filterAlgorithm': (row, filters) => {
+                    if (filters === null)
+                        return true
+                    if (filters.report_types.length > 0 && !filters.report_types.includes("all")) {
+                        if (!filters.report_types.includes(row.report_type)) {
+                            return false
+                        }
+                    }
+                    if (filters.type.length > 0 && !filters.type.includes("all")) {
+                        if (!filters.type.includes(row.type)) {
+                            return false
+                        }
+                    }
+                    if (filters.name.length > 0 && !filters.name.includes("all")) {
+                        const names = filters.name.map(test => test.split(page_constants.test_name_delimiter)[1])
+                        if (!names.includes(row.name)) {
+                            return false
+                        }
+                    }
+                    if (filters.environment.length > 0 && !filters.environment.includes("all")) {
+                        if (!filters.environment.includes(row.environment)) {
+                            return false
+                        }
+                    }
+                    return true
+                }
+            })
         },
 
     },
@@ -406,6 +421,3 @@ const SummaryFilter = {
 }
 
 register_component('SummaryFilter', SummaryFilter)
-
-
-
