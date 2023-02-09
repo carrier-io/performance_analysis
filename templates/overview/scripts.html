@@ -1,0 +1,5 @@
+<script src="{{ url_for('performance_analysis.static', filename='js/overview.js') }}"></script>
+<script src="{{ url_for('ui_performance.static', filename='js/core.js') }}"></script>
+
+{{ template_slot('backend_performance_scripts') | safe }}
+{{ template_slot('performance_analysis_scripts') | safe }}
