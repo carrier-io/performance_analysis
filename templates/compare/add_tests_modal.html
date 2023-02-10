@@ -21,23 +21,10 @@
             <template #actions="{master}">
                 <div class="d-flex justify-content-end">
                     <button class="btn btn-basic"
-                        @click="async () => {
-                            window.console.log('this works')
-                            const selected_tests = master.table_action('getSelections')
-                            if (selected_tests.length === 0) {
-                                window.showNotify('INFO', 'Select at least one test')
-                                return
-                            }
-                            const existing_tests = registered_components.table_summary.table_action('getData')
-                            window.console.log('this works 2', [...existing_tests, ...selected_tests])
-                            window.console.log('this works 3', window.handle_post_compare)
-                            await window.handle_post_compare(
-                                [...existing_tests, ...selected_tests],
-                                '{{ selected_aggregation_backend }}',
-                                '{{ selected_aggregation_ui }}',
-                                '{{ selected_metric_ui }}'
-                            )
-                        }"
+                        @click="() => custom_data.handle_add_tests(
+                            master.table_action('getSelections'),
+{#                            ['{{ selected_aggregation_backend }}', '{{ selected_aggregation_ui }}', '{{ selected_metric_ui }}']#}
+                        )"
                     >Add tests</button>
                     <button class="btn btn-secondary btn-icon btn-icon__purple mx-2"
                         @click="master.table_action('refresh')"

@@ -1,42 +1,35 @@
 import json
 from collections import defaultdict
 from queue import Empty
+from typing import Optional
 
 from pylon.core.tools import web, log
 
 from tools import MinioClient, session_project
 
-from ..utils import process_query_result
+from ..utils import process_query_result, get_persistent_filters, get_minio_file_data_or_none
 
 
 class Slot:
     @web.slot('performance_analysis_compare_content')
     def content(self, context, slot, payload):
+        # log.info('SLOT PAYLOAD %s', payload.__dict__)
+        user_id = payload.auth.id
+        # log.info('payload.auth.id %s', payload.auth.id)
         project = context.rpc_manager.call.project_get_or_404(project_id=session_project.get())
         file_hash = payload.request.args.get('source')
         # log.info('GET qwerty %s', payload.request.args.get('source'))
-        if not file_hash:
+        bucket_name = self.descriptor.config.get('bucket_name', 'comparison')
+        comparison_data = get_minio_file_data_or_none(project, bucket_name=bucket_name, file_name=f'{file_hash}.json')
+        log.info('comparison_data %s', comparison_data)
+        if not comparison_data:
             return self.descriptor.render_template(
                 'compare/empty.html',
                 file_hash=file_hash
             )
-        try:
-            comparison_data = MinioClient(project).download_file(
-                self.descriptor.config.get('bucket_name', 'comparison'),
-                f'{file_hash}.json'
-            )
-        except:
-            return self.descriptor.render_template(
-                'compare/empty.html',
-                file_name=file_hash
-            )
-        if not comparison_data:
-            return self.descriptor.render_template(
-                'compare/empty.html',
-                file_name=file_hash
-            )
-        comparison_data = comparison_data.decode('utf-8')
-        comparison_data = json.loads(comparison_data)
+        else:
+            comparison_data = json.loads(comparison_data)
+
         baselines = defaultdict(dict)
 
         def search_json_for_baselines(rep_id: int):
@@ -59,7 +52,7 @@ class Slot:
                     if report_id:
                         baseline_test = search_json_for_baselines(report_id)
                         if not baseline_test:
-                            log.info('Baseline test [%s] is not in selection. Need to query from db.', report_id)
+                            # log.info('Baseline test [%s] is not in selection. Need to query from db.', report_id)
                             ids_to_query[group].add(report_id)
                         else:
                             baselines[group][name] = {
@@ -67,9 +60,10 @@ class Slot:
                             }
                 except Empty:
                     ...
+
         results_rpc_suffix = '_get_results_by_ids'
         for group, ids in ids_to_query.items():
-            log.info('querying results for %s ids [%s]', group, ids)
+            # log.info('querying results for %s ids [%s]', group, ids)
             reports_data = context.rpc_manager.call_function_with_timeout(
                 func=f'{group}{results_rpc_suffix}',
                 timeout=3,
@@ -86,7 +80,13 @@ class Slot:
                 'compare/content.html',
                 comparison_data=comparison_data,
                 file_hash=file_hash,
-                baselines=baselines
+                baselines=baselines,
+                persistent_filters=get_persistent_filters(
+                    project,
+                    bucket_name=bucket_name,
+                    source_hash=file_hash,
+                    user_id=user_id
+                )
             )
 
     @web.slot('performance_analysis_compare_scripts')
