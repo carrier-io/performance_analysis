@@ -120,7 +120,7 @@ const chart_options = {
 }
 
 // constants and public functions
-// window.NAME_DELIMITER - comes from scripts.html
+window.NAME_DELIMITER  = ' | '
 
 const get_random_color = () => {
     const rnd = () => Math.floor(Math.random() * 255)
