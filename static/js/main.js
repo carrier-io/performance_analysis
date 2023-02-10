@@ -477,9 +477,6 @@ window.handle_post_compare = async (tests, options = {}) => {
         body: JSON.stringify({
             tests,
             merge_with_source
-            // selected_aggregation_backend,
-            // selected_aggregation_ui,
-            // selected_metric_ui
         }),
         headers: {'Content-Type': 'application/json'},
     })

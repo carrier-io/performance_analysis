@@ -135,11 +135,11 @@ class API(Resource):
             project,
             data=data.json(
                 exclude_none=True, exclude_defaults=True,
-                by_alias=True, sort_keys=True
+                by_alias=True, sort_keys=True, ensure_ascii=False
             ).encode('utf-8'),
             bucket_name=self.module.descriptor.config.get('bucket_name', 'comparison')
         )
-        hash_name = hash_name.replace('.json', '')  # todo: replace this mock
+        hash_name = hash_name[:-len('.json')]
 
-        url_base = url_for("theme.index", _external=True, _scheme=request.headers.get('X-Forwarded-Proto', 'http'))
+        url_base = url_for('theme.index', _external=True, _scheme=request.headers.get('X-Forwarded-Proto', 'http'))
         return redirect(f'{url_base}-/performance/analysis/compare?source={hash_name}')

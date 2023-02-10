@@ -120,7 +120,8 @@ const chart_options = {
 }
 
 // constants and public functions
-const JOIN_CHAR = ' | '
+// window.NAME_DELIMITER - comes from scripts.html
+
 const get_random_color = () => {
     const rnd = () => Math.floor(Math.random() * 255)
     return `rgb(${rnd()}, ${rnd()}, ${rnd()})`
@@ -161,15 +162,15 @@ const clear_block_filter = (block_id, update_chart = true) => {
 }
 
 const parse_action = action => {
-    if (action.includes(JOIN_CHAR)) {
-        const [test_name, test_env, action_name] = action.split(JOIN_CHAR)
+    if (action.includes(NAME_DELIMITER)) {
+        const [test_name, test_env, action_name] = action.split(NAME_DELIMITER)
         return [test_name, test_env, action_name]
     } else {
         return [null, null, action]
     }
 }
 
-const get_pages_to_display = (test, selected_actions) => selected_actions.reduce((accum, option) => {
+const get_actions_to_display = (test, selected_actions) => selected_actions.reduce((accum, option) => {
     const [test_name, test_env, action_name] = parse_action(option)
     if (test_name !== null && test_env !== null) {
         if (test_name === test.name && test_env === test.test_env) {
@@ -199,29 +200,37 @@ const FilterBlock = {
     delimiters: ['[[', ']]'],
     props: [
         'idx', 'block_id', 'block_type', 'action_options',
-        'metric_options', 'is_loading', 'initial_actions', 'initial_metrics'
+        'metric_options', 'is_loading', 'initial_actions', 'initial_metrics',
+        'saved', 'multi_env'
     ],
-    emits: ['remove', 'apply', 'selection_change'],
+    emits: ['remove', 'apply', 'selection_change', 'save', 'delete'],
     data() {
         return {
             selected_actions: [],
             selected_metrics: [],
+            initialization_flag: true,
         }
     },
     mounted() {
         if (this.pre_selected_actions_indexes.length > 0 || this.pre_selected_metrics_indexes > 0) {
             this.$nextTick(() => {
                 this.handle_apply_click()
+                this.$nextTick(() => this.initialization_flag = false)
             })
+        } else {
+            this.initialization_flag = false
         }
     },
     methods: {
         handle_apply_click() {
             this.$emit('apply', this.idx, this.selected_actions, this.selected_metrics)
         },
-
         handle_remove() {
             this.$emit('remove', this.idx)
+            this.$emit('delete', this.idx)
+        },
+        handle_save_click() {
+            this.$emit('save', this.idx)
         }
     },
     watch: {
@@ -237,13 +246,27 @@ const FilterBlock = {
             if (this.initial_actions === undefined) {
                 return []
             }
-            return this.action_options.map(i => this.initial_actions.indexOf(i)).filter(i => i > -1)
+            return this.action_options.reduce((accum, i, index) => {
+                if (this.initial_actions.indexOf(i) > -1) {
+                    accum.push(index)
+                }
+                return accum
+            }, [])
+            // debugger
+            // return this.action_options.filter(i => this.initial_actions.indexOf(i) > -1)
+            // return this.action_options.map(i => this.initial_actions.indexOf(i)).filter(i => i > -1)
         },
         pre_selected_metrics_indexes() {
             if (this.initial_metrics === undefined) {
                 return []
             }
-            return Object.keys(this.metric_options).map(i => this.initial_metrics.indexOf(i)).filter(i => i > -1)
+            return Object.keys(this.metric_options).reduce((accum, i, index) => {
+                if (this.initial_metrics.indexOf(i) > -1) {
+                    accum.push(index)
+                }
+                return accum
+            }, [])
+            // return Object.keys(this.metric_options).map(i => this.initial_metrics.indexOf(i)).filter(i => i > -1)
         },
         colored_metric_options() {
             return Object.entries(this.metric_options).map(([k, {name, color}]) => {
@@ -259,6 +282,9 @@ const FilterBlock = {
         },
         multiselect_title() {
             return this.block_type === page_constants.backend_name ? 'Transactions/Requests' : 'Pages/Actions'
+        },
+        formatted_actions() {
+            return this.multi_env ? this.action_options : this.action_options.map(i => ({name: i, value: parse_action(i)[2]}))
         }
     },
     template: `
@@ -268,7 +294,7 @@ const FilterBlock = {
                 [[ multiselect_title ]]
             </p>
             <MultiselectDropdown
-                :list_items="action_options"
+                :list_items="formatted_actions"
                 v-model="selected_actions"
                 placeholder="Select items"
                 :pre_selected_indexes="pre_selected_actions_indexes"
@@ -282,16 +308,28 @@ const FilterBlock = {
                 :pre_selected_indexes="pre_selected_metrics_indexes"
             ></MultiselectDropdown>
             <div class="pt-3">
-                <button class="btn btn-secondary"
-                    style="position: relative; padding-right: 24px"
+                <button class="btn btn-secondary mr-2"
                     :disabled="is_loading || (selected_actions.length === 0 || selected_metrics.length === 0)"
                     @click="handle_apply_click"
                 >
                     Apply
-                    <i class="spinner-loader" style="position: absolute; top: 8px; right: 5px"
+<!--                    <i class="spinner-loader" style="position: absolute; top: 8px; right: 5px"-->
+<!--                        v-if="is_loading"-->
+<!--                    ></i>-->
+                </button>
+                <button class="btn btn-secondary btn-32"
+                    :disabled="saved || is_loading || (selected_actions.length === 0 || selected_metrics.length === 0)"
+                    @click="handle_save_click"
+                >
+                    <i class="spinner-loader"
                         v-if="is_loading"
                     ></i>
+                    <i class="fa fa-save"
+                        v-else
+                    ></i>
                 </button>
+<!--                multi_env [[ multi_env.toString() ]]-->
+<!--                saved [[ saved.toString() ]]-->
             </div>
             
         </div>
@@ -318,11 +356,15 @@ const BuilderFilter = {
             all_tests_backend_requests: [],
             all_tests_ui_pages: [],
             earliest_date: new Date(),
-            filter_selections: {}
+            filter_selections: {},
+            comparison_hash: new URLSearchParams(location.search).get('source'),
+            multi_env: {
+                [page_constants.backend_name]: false,
+                [page_constants.ui_name]: false
+            }
         }
     },
     async mounted() {
-        // const {datasets, page_names, earliest_date} = await this.fetch_ui_data()
         const {page_names, earliest_date: ui_earliest_date} = this.ui_performance_builder_data
         this.all_tests_ui_pages = page_names
         const {all_requests, earliest_date: backend_earliest_date} = this.backend_performance_builder_data
@@ -344,23 +386,24 @@ const BuilderFilter = {
         $('html').css({'scroll-behavior': 'smooth'}) // todo: maybe we don't need that
 
 
-        const comparison_hash = new URLSearchParams(location.search).get('source')
-        const stored_filters = JSON.parse(sessionStorage.getItem(comparison_hash))
-        debugger
+        // const comparison_hash = new URLSearchParams(location.search).get('source')
+        const stored_filters = JSON.parse(sessionStorage.getItem(this.comparison_hash))
         if (stored_filters !== null) {
             const persistent_filters_ids = this.persistent_filters.map(f => f.id)
-            this.blocks = stored_filters.filter(f => {
-                persistent_filters_ids.includes(f.id)
-            }).map(f => {
+            this.blocks = stored_filters.filter(f =>
+                !persistent_filters_ids.includes(f.id)
+            ).map(f => {
                 f.is_loading = false
+                f.saved = false
                 return f
             })
-            sessionStorage.removeItem(comparison_hash)
+            sessionStorage.removeItem(this.comparison_hash)
         }
-        this.blocks = this.persistent_filters.map(f => {
+        this.blocks = [...this.blocks, ...this.persistent_filters.map(f => {
             f.is_loading = false
+            f.saved = true
             return f
-        })
+        })]
 
         this.$root.custom_data.get_filter_blocks_state = () => this.blocks.map(({id, type}) => {
             const {
@@ -389,22 +432,34 @@ const BuilderFilter = {
             Object.entries(this.unique_groups).forEach(([group, i]) => {
                 switch (group) {
                     case 'backend_performance':
-                        if (i.length === 1) {
-                            this.backend_options = this.all_tests_backend_requests
-                        } else {
-                            this.backend_options = this.all_tests_backend_requests.reduce((accum, o) => {
-                                return [...accum, ...i.map(combo => [...combo, o].join(JOIN_CHAR))]
-                            }, [])
-                        }
+                        this.backend_options = this.all_tests_backend_requests.reduce((accum, o) => {
+                            return [...accum, ...i.map(combo => [...combo, o].join(NAME_DELIMITER))]
+                        }, [])
+                        this.multi_env[page_constants.backend_name] = i.length > 1
+                        // if (i.length === 1) {
+                        //     // this.backend_options = this.all_tests_backend_requests
+                        //     this.multi_env[page_constants.backend_name] = false
+                        // } else {
+                        //     // this.backend_options = this.all_tests_backend_requests.reduce((accum, o) => {
+                        //     //     return [...accum, ...i.map(combo => [...combo, o].join(NAME_DELIMITER))]
+                        //     // }, [])
+                        //     this.multi_env[page_constants.backend_name] = true
+                        // }
                         break
                     case 'ui_performance':
-                        if (i.length === 1) {
-                            this.ui_options = this.all_tests_ui_pages
-                        } else {
-                            this.ui_options = this.all_tests_ui_pages.reduce((accum, o) => {
-                                return [...accum, ...i.map(combo => [...combo, o].join(JOIN_CHAR))]
-                            }, [])
-                        }
+                        this.ui_options = this.all_tests_ui_pages.reduce((accum, o) => {
+                            return [...accum, ...i.map(combo => [...combo, o].join(NAME_DELIMITER))]
+                        }, [])
+                        this.multi_env[page_constants.ui_name] = i.length > 1
+                        // if (i.length === 1) {
+                        //     this.ui_options = this.all_tests_ui_pages
+                        //     this.multi_env[page_constants.ui_name] = false
+                        // } else {
+                        //     this.ui_options = this.all_tests_ui_pages.reduce((accum, o) => {
+                        //         return [...accum, ...i.map(combo => [...combo, o].join(NAME_DELIMITER))]
+                        //     }, [])
+                        //     this.multi_env[page_constants.ui_name] = true
+                        // }
                         break
                     default:
                         console.warn('Unknown test group: ', group)
@@ -417,7 +472,7 @@ const BuilderFilter = {
             if (test.datasets[this.backend_time_aggregation] === undefined) {
                 return [datasets, table_data]
             }
-            const requests = get_pages_to_display(test, selected_actions)
+            const requests = get_actions_to_display(test, selected_actions)
             requests.forEach(request => {
                 if (test.datasets[this.backend_time_aggregation][request] !== undefined) {
                     const request_earliest_date_value = Math.min(
@@ -482,7 +537,7 @@ const BuilderFilter = {
         make_ui_data(test, block_data, selected_actions, selected_metrics) {
             let datasets = []
             let table_data = []
-            const pages = get_pages_to_display(test, selected_actions)
+            const pages = get_actions_to_display(test, selected_actions)
             selected_metrics.forEach(metric_data_key => {
                 const page_data = pages.reduce((accum, page) => {
                     Object.entries(test.datasets[page]).forEach(([loop_id, ds]) => {
@@ -588,7 +643,8 @@ const BuilderFilter = {
             this.blocks.push({
                 id: this.make_id(),
                 type: block_type,
-                is_loading: false
+                is_loading: false,
+                saved: false,
             })
         },
         get_action_options(type) {
@@ -597,6 +653,36 @@ const BuilderFilter = {
         },
         get_metric_options(type) {
             return builder_metrics[type] || {}
+        },
+        async handle_save(block_index) {
+            const block_data = this.blocks[block_index]
+            block_data.is_loading = true
+            const {id, type} = block_data
+            const {
+                selected_actions: initial_actions,
+                selected_metrics: initial_metrics
+            } = this.filter_selections[block_data.id]
+            const response = await fetch(
+                `${api_base}/performance_analysis/user_filters/${getSelectedProjectId()}/${this.comparison_hash}`,
+                {
+                    method: 'PUT',
+                    body: JSON.stringify({id, type, initial_actions, initial_metrics}),
+                    headers: {'Content-Type': 'application/json'},
+                }
+            )
+            if (response.ok) {
+                block_data.saved = true
+                showNotify('SUCCESS', 'Filter saved')
+            } else {
+                showNotify('ERROR', 'Couldn\'t save filter')
+            }
+            block_data.is_loading = false
+        },
+        handle_selection_change(id, index, data) {
+            if (!data.initialization_flag) {
+                this.blocks[index].saved = false
+            }
+            this.filter_selections[id] = data
         }
     },
     template: `
@@ -636,7 +722,7 @@ const BuilderFilter = {
             </div>
             <hr class="my-0">
             <div class="builder_filter_blocks">
-                <div v-for="({id, type, is_loading, initial_actions, initial_metrics}, index) in blocks" :key="id">
+                <div v-for="({id, type, is_loading, initial_actions, initial_metrics, saved}, index) in blocks" :key="id">
                     <hr class="my-0" v-if="index > 0">
                     <FilterBlock
                        :idx="index"
@@ -647,9 +733,12 @@ const BuilderFilter = {
                        :metric_options="get_metric_options(type)"
                        :initial_actions="initial_actions"
                        :initial_metrics="initial_metrics"
-                       @selection_change="data => filter_selections[id] = data"
+                       :saved="saved"
+                       :multi_env="multi_env[type]"
+                       @selection_change="data => handle_selection_change(id, index, data)"
                        @remove="handle_remove"
                        @apply="handle_apply"
+                       @save="handle_save"
                     >
                     </FilterBlock>
                 </div> 

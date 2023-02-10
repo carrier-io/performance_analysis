@@ -1,3 +1,10 @@
+<script>
+    window.NAME_DELIMITER = '{{ name_delimiter | default(' | ') }}'
+    $(() => {
+        window.location.search.indexOf('test') > -1 && $('#debug-panel').show()
+    })
+</script>
+
 <script src="{{ url_for('design-system.static', filename='assets/vendor/chart.js/chart.min.js') }}"></script>
 <script src="{{ url_for('design-system.static', filename='assets/vendor/chart.js/chartjs-adapter-date-fns.bundle.min.js') }}"></script>
 
@@ -7,9 +14,3 @@
 <script src="{{ url_for('theme.static', filename='js/tags.js') }}"></script>
 <script src="{{ url_for('performance_analysis.static', filename='js/compare.js') }}"></script>
 <script src="{{ url_for('performance_analysis.static', filename='js/comparison_builder.js') }}"></script>
-
-<script>
-    $(() => {
-        window.location.search.indexOf('test') > -1 && $('#debug-panel').show()
-    })
-</script>

@@ -94,6 +94,7 @@ class Slot:
         with context.app.app_context():
             return self.descriptor.render_template(
                 'compare/scripts.html',
+                name_delimiter=' | '
             )
 
     @web.slot('performance_analysis_compare_styles')
