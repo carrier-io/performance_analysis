@@ -368,11 +368,11 @@ const aggregate_data = (grouped_data, group_aggregations_key, data_aggregation_t
         // struct.aggregation.max.push(aggregation_callback_map.max(aggregation_data))
         // this will apply aggregation function to metric's min and max aggregated values
         !group.aggregations.min &&
-            console.debug('No aggregation "min" for ', group)
+        console.warn('No aggregation "min" for ', group)
         struct.aggregation.min.push(aggregation_callback(group.aggregations.min))
 
         !group.aggregations.max &&
-            console.debug('No aggregation "max" for ', group)
+        console.warn('No aggregation "max" for ', group)
         struct.aggregation.max.push(aggregation_callback(group.aggregations.max))
         switch (data_aggregation_type) {
             case 'min':
