@@ -39,7 +39,7 @@ class API(Resource):
         final_filters = [i for i in current_filters if i['id'] != new_filter['id']]
         final_filters.append(new_filter)
         final_filters.sort(key=id_filter_lambda)
-        log.info('final_filters %s', final_filters)
+        # log.info('final_filters %s', final_filters)
 
         upload_to_minio(
             project,

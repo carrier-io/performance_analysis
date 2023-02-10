@@ -64,7 +64,7 @@ def get_minio_file_data_or_none(project, bucket_name: str, file_name: str) -> Op
     try:
         file_data = MinioClient(project).download_file(bucket_name, file_name)
     except Exception as e:
-        log.info('get_minio_file_data_or_none %s', e)
+        # log.info('get_minio_file_data_or_none %s', e)
         return
     return file_data.decode('utf-8')
 
