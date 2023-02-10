@@ -14,7 +14,7 @@ class API(Resource):
         self.module = module
 
     def get(self, project_id: int):
-        log.info(f"{request.args=}")
+        # log.info(f"{request.args=}")
         result = []
 
         if start_time := request.args.get('start_time'):

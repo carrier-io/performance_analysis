@@ -21,7 +21,7 @@ class Slot:
         # log.info('GET qwerty %s', payload.request.args.get('source'))
         bucket_name = self.descriptor.config.get('bucket_name', 'comparison')
         comparison_data = get_minio_file_data_or_none(project, bucket_name=bucket_name, file_name=f'{file_hash}.json')
-        log.info('comparison_data %s', comparison_data)
+        # log.info('comparison_data %s', comparison_data)
         if not comparison_data:
             return self.descriptor.render_template(
                 'compare/empty.html',
