@@ -46,11 +46,11 @@ def upload_to_minio(project, data: bytes,
 
 def merge_comparisons(source_data: dict, current_data: dict,
                       check_tests_are_unique: bool = False) -> 'ComparisonDataStruct':
-    base_path = '/data/pylon/plugins/performance_analysis/tmp/'
-    with open(base_path + 'source_data.tmp.json', 'w') as out:
-        json.dump(source_data, out)
-    with open(base_path + 'current_data.tmp.json', 'w') as out:
-        json.dump(current_data, out)
+    # base_path = '/data/pylon/plugins/performance_analysis/tmp/'
+    # with open(base_path + 'source_data.tmp.json', 'w') as out:
+    #     json.dump(source_data, out)
+    # with open(base_path + 'current_data.tmp.json', 'w') as out:
+    #     json.dump(current_data, out)
     return ComparisonDataStruct.parse_obj(source_data).merge(
         ComparisonDataStruct.parse_obj(current_data),
         check_tests_are_unique
@@ -60,7 +60,7 @@ def merge_comparisons(source_data: dict, current_data: dict,
 def get_minio_file_data_or_none(project, bucket_name: str, file_name: str) -> Optional[str]:
     # if not file_name:
     #     return
-    log.info('get start %s', [bucket_name, file_name])
+    # log.info('get start %s', [bucket_name, file_name])
     try:
         file_data = MinioClient(project).download_file(bucket_name, file_name)
     except Exception as e:

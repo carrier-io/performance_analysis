@@ -284,7 +284,7 @@ const FilterBlock = {
             return this.block_type === page_constants.backend_name ? 'Transactions/Requests' : 'Pages/Actions'
         },
         formatted_actions() {
-            return this.multi_env ? this.action_options : this.action_options.map(i => ({name: i, value: parse_action(i)[2]}))
+            return this.multi_env ? this.action_options : this.action_options.map(i => ({name: parse_action(i)[2], value: i}))
         }
     },
     template: `
@@ -298,6 +298,7 @@ const FilterBlock = {
                 v-model="selected_actions"
                 placeholder="Select items"
                 :pre_selected_indexes="pre_selected_actions_indexes"
+                return_key="value"
             ></MultiselectDropdown>
             <p class="font-h5 font-bold my-1 text-gray-800">Metrics</p>
             <MultiselectDropdown
