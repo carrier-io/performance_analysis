@@ -5,17 +5,16 @@ const OverviewPage = {
             reports_table_params: {
                 id: 'table_reports_overview',
                 'data-url': `/api/v1/performance_analysis/reports/${getSelectedProjectId()}`,
-                'data-height': '321',
-                'data-side-pagination': 'client',
-                'data-pagination-parts': ['pageInfoShort'],
+                'data-height': '247',
+                'data-pagination': false,
                 'data-unique-id': 'report_id',
             },
             tests_table_params: {
                 'data-url': `/api/v1/performance_analysis/tests/${getSelectedProjectId()}`,
-                'data-height': '321',
+                'data-height': '247',
                 id: 'table_tests_overview',
-                'data-side-pagination': 'client',
-                'data-pagination-parts': ['pageInfo']
+                'data-pagination': false,
+                'data-unique-id': 'uid',
             }
         }
     },
@@ -45,6 +44,7 @@ const OverviewPage = {
                 instance_name="table_tests_overview"
                 header='Tests'
                 :table_attributes="tests_table_params"
+                :show-custom-count="true"
                 container_classes="my-3"
                 class="table-scroll"
                 :adaptive-height="true"
@@ -111,6 +111,7 @@ const OverviewPage = {
                 header='Latest reports'
                 :table_attributes="reports_table_params"
                 container_classes="my-3"
+                :show-custom-count="true"
                 class="table-scroll"
                 :adaptive-height="true"
             >
