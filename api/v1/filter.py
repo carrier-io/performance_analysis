@@ -1,4 +1,3 @@
-import json
 from datetime import datetime
 from queue import Empty
 from typing import Optional
@@ -9,9 +8,10 @@ from collections import defaultdict
 
 from pylon.core.tools import log
 
-from ...utils import process_query_result, upload_to_minio, merge_comparisons, ComparisonDataStruct
+from ...utils import process_query_result, merge_comparisons, FilterManager
+from ...models.pd.builder_data import ComparisonDataStruct
 
-from tools import MinioClient
+# from tools import MinioClient
 
 
 class API(Resource):
@@ -119,27 +119,35 @@ class API(Resource):
         # if we add tests to existing comparison data we do not want
         # to recalculate all comparison data. We use existing one and merge with new
         merge_source_hash: Optional[str] = request.json.get('merge_with_source')
+        filter_manager = FilterManager(
+            project,
+            self.module.descriptor.config.get('bucket_name', 'comparison'),
+        )
         if merge_source_hash:
-            source_data = MinioClient(project).download_file(
-                self.module.descriptor.config.get('bucket_name', 'comparison'),
-                f'{merge_source_hash}.json'
+            filter_manager.source_hash = merge_source_hash
+            source_data = filter_manager.get_filters(f'{filter_manager.source_hash}.json')
+            filter_manager.client.download_file(
+                filter_manager.bucket_name,
+                f'{filter_manager.source_hash}'
             )
-            source_data = source_data.decode('utf-8')
-            source_data = json.loads(source_data)
+            # source_data = MinioClient(project).download_file(
+            #     self.module.descriptor.config.get('bucket_name', 'comparison'),
+            #     f'{merge_source_hash}.json'
+            # )
+            # source_data = source_data.decode('utf-8')
+            # source_data = json.loads(source_data)
             data = merge_comparisons(source_data, data)
         else:
             # Normalize output
             data = ComparisonDataStruct.parse_obj(data)
 
-        hash_name = upload_to_minio(
-            project,
+        filter_manager.source_hash = filter_manager.upload_to_minio(
             data=data.json(
                 exclude_none=True, exclude_defaults=True,
                 by_alias=True, sort_keys=True, ensure_ascii=False
             ).encode('utf-8'),
-            bucket_name=self.module.descriptor.config.get('bucket_name', 'comparison')
         )
-        hash_name = hash_name[:-len('.json')]
+        hash_name = filter_manager.source_hash[:-len('.json')]
 
         url_base = url_for('theme.index', _external=True, _scheme=request.headers.get('X-Forwarded-Proto', 'http'))
         return redirect(f'{url_base}-/performance/analysis/compare?source={hash_name}')
