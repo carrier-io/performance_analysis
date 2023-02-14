@@ -7,26 +7,26 @@ from pylon.core.tools import web, log
 
 from tools import MinioClient, session_project
 
-from ..utils import process_query_result, get_persistent_filters, get_minio_file_data_or_none
+from ..utils import process_query_result, FilterManager
 
 
 class Slot:
     @web.slot('performance_analysis_compare_content')
     def content(self, context, slot, payload):
-        # log.info('SLOT PAYLOAD %s', payload.__dict__)
         user_id = payload.auth.id
-        # log.info('payload.auth.id %s', payload.auth.id)
         project = context.rpc_manager.call.project_get_or_404(project_id=session_project.get())
         file_hash = payload.request.args.get('source')
-        # log.info('GET qwerty %s', payload.request.args.get('source'))
-        bucket_name = self.descriptor.config.get('bucket_name', 'comparison')
-        comparison_data = get_minio_file_data_or_none(project, bucket_name=bucket_name, file_name=f'{file_hash}.json')
-        # log.info('comparison_data %s', comparison_data)
+        filter_manager = FilterManager(
+            project,
+            self.descriptor.config.get('bucket_name', 'comparison')
+        )
+        comparison_data = filter_manager.get_minio_file_data_or_none(f'{file_hash}.json')
         if not comparison_data:
-            return self.descriptor.render_template(
-                'compare/empty.html',
-                file_hash=file_hash
-            )
+            with context.app.app_context():
+                return self.descriptor.render_template(
+                    'compare/empty.html',
+                    file_hash=file_hash
+                )
         else:
             comparison_data = json.loads(comparison_data)
 
@@ -81,12 +81,7 @@ class Slot:
                 comparison_data=comparison_data,
                 file_hash=file_hash,
                 baselines=baselines,
-                persistent_filters=get_persistent_filters(
-                    project,
-                    bucket_name=bucket_name,
-                    source_hash=file_hash,
-                    user_id=user_id
-                )
+                persistent_filters=filter_manager.get_user_filters(user_id)
             )
 
     @web.slot('performance_analysis_compare_scripts')

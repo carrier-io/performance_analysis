@@ -194,7 +194,7 @@
 
     <div class="card my-3">
         <div class="card-header d-inline-flex card-header-padding-fix">
-            <h3>Comparison builder</h3>
+            <h4 class="font-h4 font-bold">Comparison builder</h4>
             <div class="ml-3">
                 {% if 'backend_performance' in comparison_data["unique_groups"].keys() %}
                     <div class="selectpicker-titled">
@@ -212,6 +212,7 @@
                     </div>
                 {% endif %}
             </div>
+        <button class="btn btn-primary">Make shared</button>
         </div>
         <div class="card-body d-flex">
             <div class="flex-grow-1">

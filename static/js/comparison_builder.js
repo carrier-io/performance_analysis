@@ -284,7 +284,7 @@ const FilterBlock = {
             return this.block_type === page_constants.backend_name ? 'Transactions/Requests' : 'Pages/Actions'
         },
         formatted_actions() {
-            return this.multi_env ? this.action_options : this.action_options.map(i => ({name: parse_action(i)[2], value: i}))
+            return this.action_options.map(i => ({name: this.multi_env ? i : parse_action(i)[2], value: i}))
         }
     },
     template: `
@@ -634,8 +634,10 @@ const BuilderFilter = {
             window.chart_builder.data.datasets = [...window.chart_builder.data.datasets, ...all_datasets]
             window.chart_builder.update()
 
-            clear_filter_blocks_from_table([block_data.id])
-            this.$root.registered_components.table_comparison.table_action('append', all_table_data)
+            this.$root.registered_components.table_comparison.el.ready(() => {
+                clear_filter_blocks_from_table([block_data.id])
+                this.$root.registered_components.table_comparison.table_action('append', all_table_data)
+            })
         },
         handle_add_filter_block(block_type = undefined) {
             if (block_type === undefined) {
