@@ -1,6 +1,6 @@
 const ColorfulCards = {
     delimiters: ['[[', ']]'],
-    props: ['card_data', 'selected_aggregation_backend', 'selected_aggregation_ui', 'selected_metric_ui'],
+    props: ['card_data', 'health_metric', 'selected_aggregation_backend', 'selected_aggregation_ui', 'selected_metric_ui'],
     methods: {
         compute_average(key) {
             return (this.card_data.sums[key] / this.card_data.counters[key]).toFixed(2)
@@ -15,13 +15,39 @@ const ColorfulCards = {
         },
         ui_aggregation_name() {
             return get_mapped_name(this.selected_metric_ui)
+        },
+        health() {
+            switch (this.health_metric) {
+                case 'green':
+                    return {
+                        color: 'card-health__green',
+                        icon: 'icon-health__green'
+                    }
+                case 'amber':
+                    return {
+                        color: 'card-health__amber',
+                        icon: 'icon-health__amber'
+                    }
+                case 'red':
+                    return {
+                        color: 'card-health__red',
+                        icon: 'icon-health__red'
+                    }
+                case 'grey':
+                    return {
+                        color: 'card-health__grey',
+                        icon: 'icon-health__grey'
+                    }
+                default:
+                    return null
+            }
         }
     },
     template: `
     <div class="d-grid grid-column-5 gap-3 mt-3 colorful-cards">
-        <div class="card card-sm card-health card-health__green">
+        <div class="card card-sm card-health" :class="health.color" v-if="health_metric">
             <div class="card-header">
-                <i class="icon-health icon-health__green"></i>
+                <i class="icon-health" :class="health.icon"></i>
             </div>
             <div class="card-body">HEALTH</div>
         </div>
@@ -67,7 +93,7 @@ const ColorfulCards = {
             </div>
             <div class="card-body">AVR. RESPONSE TIME</div>
         </div>
-        <div class="card card-sm card-orange">
+        <div class="card card-sm card-orange" v-if="health_metric == undefined">
             <div class="card-header">
                 <span v-if="card_data?.sums.aggregation_ui !== undefined">
                     [[ compute_average('aggregation_ui') ]] ms
