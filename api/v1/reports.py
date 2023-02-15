@@ -37,5 +37,5 @@ class API(Resource):
                 )
             except Empty:
                 ...
-        result = [{"report_id": idx, **report} for idx, report in enumerate(result)]
+        result = [report for report in result]
         return result

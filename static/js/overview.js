@@ -6,8 +6,8 @@ const OverviewPage = {
                 id: 'table_reports_overview',
                 'data-url': `/api/v1/performance_analysis/reports/${getSelectedProjectId()}`,
                 'data-height': '247',
+                'data-side-pagination': true,
                 'data-pagination': false,
-                'data-unique-id': 'report_id',
             },
             tests_table_params: {
                 'data-url': `/api/v1/performance_analysis/tests/${getSelectedProjectId()}`,
@@ -25,13 +25,14 @@ const OverviewPage = {
             <h3>Summary</h3>
         </div>
         <div class="card-body d-flex flex-column">
-            <SummaryFilter>
+            <SummaryFilter :calculate_health="true">
                 <template #cards="{master}">
                     <ColorfulCards
                         :card_data="master.colorful_cards_data"
                         :selected_aggregation_backend="master.selected_aggregation_backend"
                         :selected_aggregation_ui="master.selected_aggregation_ui"
                         :selected_metric_ui="master.selected_metric_ui"
+                        :health_metric="master.health_metric"
                     ></ColorfulCards>
                 </template>
             ></SummaryFilter>
@@ -144,9 +145,9 @@ const OverviewPage = {
                     >
                         Runner
                     </th>
-                    <th scope="col" data-sortable="true" data-field="test_status.status"
+                    <th scope="col" data-sortable="true" data-field="test_status"
                         data-align="right"
-                        data-formatter="report_formatters.status"
+                        data-formatter="report_formatters.full_status"
                     >
                         Status
                     </th>
