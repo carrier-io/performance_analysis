@@ -132,7 +132,7 @@ var test_formatters = {
 
 var report_formatters = {
     name(value, row, index) {
-        const test_type = row.group === "ui_performance" ? "ui" : "backend"
+        const test_type = row.report_type === "ui_performance" ? "ui" : "backend"
         return `<a class="test form-control-label font-h5" 
                    href="../${test_type}/results?result_id=${row.id}" role="button">
                     ${row.name}
@@ -172,6 +172,30 @@ var report_formatters = {
                 return `<div style="color: var(--basic)"><i class="fas fa-spinner fa-spin fa-secondary"></i> ${value}</div>`
             default:
                 return value.toLowerCase()
+        }
+    },
+    full_status(value, row, index) {
+        switch (value.status.toLowerCase()) {
+            case 'error':
+                return `<div data-toggle="tooltip" data-placement="top" title="${value.description}" style="color: var(--red)"><i class="fas fa-exclamation-circle error"></i> ${value.status}</div>`
+            case 'failed':
+                return `<div data-toggle="tooltip" data-placement="top" title="${value.description}" style="color: var(--red)"><i class="fas fa-exclamation-circle error"></i> ${value.status}</div>`
+            case 'success':
+                return `<div data-toggle="tooltip" data-placement="top" title="${value.description}" style="color: var(--green)"><i class="fas fa-exclamation-circle error"></i> ${value.status}</div>`
+            case 'canceled':
+                return `<div data-toggle="tooltip" data-placement="top" title="${value.description}" style="color: var(--gray)"><i class="fas fa-times-circle"></i> ${value.status}</div>`
+            case 'finished':
+                return `<div data-toggle="tooltip" data-placement="top" title="${value.description}" style="color: var(--info)"><i class="fas fa-check-circle"></i> ${value.status}</div>`
+            case 'in progress':
+                return `<div data-toggle="tooltip" data-placement="top" title="${value.description}" style="color: var(--basic)"><i class="fas fa-spinner fa-spin fa-secondary"></i> ${value.status}</div>`
+            case 'post processing':
+                return `<div data-toggle="tooltip" data-placement="top" title="${value.description}" style="color: var(--basic)"><i class="fas fa-spinner fa-spin fa-secondary"></i> ${value.status}</div>`
+            case 'pending...':
+                return `<div data-toggle="tooltip" data-placement="top" title="${value.description}" style="color: var(--basic)"><i class="fas fa-spinner fa-spin fa-secondary"></i> ${value.status}</div>`
+            case 'preparing...':
+                return `<div data-toggle="tooltip" data-placement="top" title="${value.description}" style="color: var(--basic)"><i class="fas fa-spinner fa-spin fa-secondary"></i> ${value.status}</div>`
+            default:
+                return value.status.toLowerCase()
         }
     },
 }

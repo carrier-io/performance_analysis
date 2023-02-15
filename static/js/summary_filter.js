@@ -1,6 +1,6 @@
-
 const SummaryFilter = {
     delimiters: ['[[', ']]'],
+    props: ["calculate_health"],
     data() {
         return {
             all_data: [],
@@ -19,6 +19,7 @@ const SummaryFilter = {
             start_time: 'last_week',
             end_time: undefined,
             selected_filters: [],
+            health_metric: undefined,
         }
     },
     async mounted() {
@@ -129,15 +130,25 @@ const SummaryFilter = {
             } else {
                 showNotify('ERROR', 'Error fetching groups')
             }
+            if (this.calculate_health) this.get_health_metric()
             vueVm.registered_components.table_reports_overview?.table_action('refresh', {
                 query: this.timeframe
             })
             this.is_loading = false
         },
-        // handle_apply_click() {
-        //     this.handle_filter_changed()
-        // },
-
+        async get_health_metric() {
+            const resp = await fetch(
+                api_base + '/performance_analysis/health/' + getSelectedProjectId()
+                + '?' + new URLSearchParams(
+                    this.timeframe
+                )
+            )
+            if (resp.ok) {
+                this.health_metric = await resp.json()
+            } else {
+                showNotify('ERROR', 'Error fetching health metric')
+            }
+        },
         handle_filter_changed() {
             vueVm.registered_components.table_reports?.table_action('load', this.filtered_tests)
             vueVm.registered_components.table_reports_overview?.table_action('filterBy', {
@@ -155,7 +166,7 @@ const SummaryFilter = {
                         }
                     }
                     if (filters.type.length > 0 && !filters.type.includes("all")) {
-                        if (!filters.type.includes(row.type)) {
+                        if (!filters.type.includes(row.test_type || row.type)) {
                             return false
                         }
                     }
