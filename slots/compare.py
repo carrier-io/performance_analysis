@@ -15,17 +15,17 @@ class Slot:
     def content(self, context, slot, payload):
         user_id = payload.auth.id
         project = context.rpc_manager.call.project_get_or_404(project_id=session_project.get())
-        file_hash = payload.request.args.get('source')
         filter_manager = FilterManager(
             project,
-            self.descriptor.config.get('bucket_name', 'comparison')
+            self.descriptor.config.get('bucket_name', 'comparison'),
+            payload.request.args.get('source')
         )
-        comparison_data = filter_manager.get_minio_file_data_or_none(f'{file_hash}.json')
+        comparison_data = filter_manager.get_minio_file_data_or_none(f'{filter_manager.source_hash}.json')
         if not comparison_data:
             with context.app.app_context():
                 return self.descriptor.render_template(
                     'compare/empty.html',
-                    file_hash=file_hash
+                    file_hash=filter_manager.source_hash
                 )
         else:
             comparison_data = json.loads(comparison_data)
@@ -75,13 +75,22 @@ class Slot:
                     report.test_env: report.dict(exclude={'total', 'failures'})
                 }
 
+        user_filters = []
+        shared_filters = []
+        shared_filter_uid = payload.request.args.get('share')
+        if shared_filter_uid:
+            shared_filters = filter_manager.get_shared_filters(shared_filter_uid)
+        else:
+            user_filters = filter_manager.get_user_filters(user_id)
+
         with context.app.app_context():
             return self.descriptor.render_template(
                 'compare/content.html',
                 comparison_data=comparison_data,
-                file_hash=file_hash,
+                file_hash=filter_manager.source_hash,
                 baselines=baselines,
-                persistent_filters=filter_manager.get_user_filters(user_id)
+                user_filters=user_filters,
+                shared_filters=shared_filters
             )
 
     @web.slot('performance_analysis_compare_scripts')

@@ -29,26 +29,15 @@ class API(Resource):
         )
         current_filters = filter_manager.get_user_filters(user_id)
 
-        id_filter_lambda = lambda i: i['id']
-        # uncomment this if need to save multiple filters
-        # new_filters = list(request.json)
-        # new_filter_ids = set(map(id_filter_lambda, new_filters))
-        #
-        # final_filters = list(filter(lambda i: i['id'] not in new_filter_ids, current_filters))
-        # final_filters.extend(new_filters)
+        # id_filter_lambda = lambda i: i['id']
+
         new_filter = dict(request.json)
-        # new_filter['saved'] = True
-        final_filters = [i for i in current_filters if i['id'] != new_filter['id']]
-        final_filters.append(new_filter)
-        final_filters.sort(key=id_filter_lambda)
+        # final_filters = [i for i in current_filters if i['id'] != new_filter['id']]
+        # final_filters.append(new_filter)
+        # final_filters.sort(key=id_filter_lambda)
         # log.info('final_filters %s', final_filters)
 
-        # upload_to_minio(
-        #     project,
-        #     data=json.dumps(final_filters, ensure_ascii=False).encode('utf-8'),
-        #     file_name=get_persistent_filters_file_name(comparison_hash, user_id),
-        #     bucket_name=bucket_name
-        # )
+        final_filters = filter_manager.merge_filter_sets(current_filters, [new_filter])
         filter_manager.upload_to_minio(
             data=json.dumps(final_filters, ensure_ascii=False).encode('utf-8'),
             file_name=filter_manager.get_user_filters_name(user_id)
