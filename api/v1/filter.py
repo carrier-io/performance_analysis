@@ -23,6 +23,7 @@ class API(Resource):
         self.module = module
 
     def get(self, project_id: int):
+        # handle fetch tests with filters from analysis tab
         project = self.module.context.rpc_manager.call.project_get_or_404(project_id=project_id)
         start_time = request.args.get('start_time')
         if start_time:
@@ -56,6 +57,7 @@ class API(Resource):
         return jsonify(tests)
 
     def post(self, project_id: int):
+        # handle click compare in analysis
         project = self.module.context.rpc_manager.call.project_get_or_404(project_id=project_id)
         data = dict(request.json)
         # log.info('')

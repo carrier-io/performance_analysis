@@ -86,7 +86,7 @@ var baseline_formatters = {
 $(document).on('vue_init', () => {
     V.custom_data.baselines = JSON.parse(V.registered_components.table_summary.table_attributes.baselines)
     V.custom_data.handle_add_tests = async selected_tests => {
-    // V.custom_data.handle_add_tests = async (selected_tests, page_choices) => {
+        // V.custom_data.handle_add_tests = async (selected_tests, page_choices) => {
         if (selected_tests.length === 0) {
             showNotify('INFO', 'Select at least one test')
             return
@@ -112,3 +112,19 @@ $(document).on('vue_init', () => {
     }
 })
 
+const handle_share_create = async () => {
+    const comparison_hash = new URLSearchParams(location.search).get('source')
+    const filter_data = V.custom_data.get_filter_blocks_state()
+    const response = await fetch(
+        `${api_base}/performance_analysis/shared_filters/${getSelectedProjectId()}/${comparison_hash}`,
+        {
+            method: 'POST',
+            body: JSON.stringify(filter_data),
+            headers: {'Content-Type': 'application/json'},
+        })
+
+    !response.ok && showNotify('ERROR', 'Sharing error')
+    if (response.redirected) {
+        window.location.href = response.url
+    }
+}
