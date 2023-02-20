@@ -104,7 +104,8 @@ const chart_options = {
                 position: 'left',
                 // text: 'Y label here',
                 // display: 'auto',
-                display: true,
+                // display: true,
+                display: 'auto',
                 grid: {
                     display: true,
                     borderDash: [2, 1],
@@ -113,6 +114,23 @@ const chart_options = {
                 // ticks: {
                 //     count: 10
                 // }
+                min: 0
+            },
+            counts: {
+                type: 'linear',
+                position: 'right',
+                // text: 'Counts',
+                display: 'auto',
+                // display: true,
+                grid: {
+                    drawOnChartArea: false, // only want the grid lines for one axis to show up
+                //     display: true,
+                //     borderDash: [2, 1],
+                //     color: "#D3D3D3"
+                },
+                ticks: {
+                    stepSize: 1
+                },
                 min: 0
             },
         }
@@ -139,18 +157,21 @@ const builder_metrics = {
         lvc: {name: 'lvc', color: get_random_color()},
     },
     [page_constants.backend_name]: {
-        total: {name: 'total', color: get_random_color()},
         min: {name: 'min', color: get_random_color()},
         max: {name: 'max', color: get_random_color()},
         median: {name: 'median', color: get_random_color()},
         pct90: {name: 'pct90', color: get_random_color()},
         pct95: {name: 'pct95', color: get_random_color()},
         pct99: {name: 'pct99', color: get_random_color()},
-        onexx: {name: 'onexx', color: get_random_color()},
-        twoxx: {name: 'twoxx', color: get_random_color()},
-        threexx: {name: 'threexx', color: get_random_color()},
-        fourxx: {name: 'fourxx', color: get_random_color()},
-        fivexx: {name: 'fivexx', color: get_random_color()}
+        total: {name: 'total', color: get_random_color(), scale: 'counts'},
+        failures: {name: 'failures', color: get_random_color(), scale: 'counts'},
+        throughput: {name: 'throughput', color: get_random_color(), scale: 'counts'},
+        onexx: {name: 'onexx', color: get_random_color(), scale: 'counts'},
+        twoxx: {name: 'twoxx', color: get_random_color(), scale: 'counts'},
+        threexx: {name: 'threexx', color: get_random_color(), scale: 'counts'},
+        fourxx: {name: 'fourxx', color: get_random_color(), scale: 'counts'},
+        fivexx: {name: 'fivexx', color: get_random_color(), scale: 'counts'},
+        users: {name: 'users', color: get_random_color(), scale: 'counts'},
     }
 }
 const clear_block_filter = (block_id, update_chart = true) => {
@@ -307,7 +328,7 @@ const FilterBlock = {
                 placeholder="Select items"
                 :pre_selected_indexes="pre_selected_actions_indexes"
                 return_key="value"
-                :key="updated_at"
+                :key="sharing_mode ? updated_at : block_id"
             ></MultiselectDropdown>
             <p class="font-h5 font-bold my-1 text-gray-800">Metrics</p>
             <MultiselectDropdown
@@ -316,7 +337,7 @@ const FilterBlock = {
                 placeholder="Select metrics"
                 return_key="data_key"
                 :pre_selected_indexes="pre_selected_metrics_indexes"
-                :key="updated_at"
+                :key="sharing_mode ? updated_at : block_id"
             ></MultiselectDropdown>
             <div class="pt-3">
                 <button class="btn btn-secondary mr-2"
@@ -531,11 +552,10 @@ const BuilderFilter = {
                         )
                     )
                     selected_metrics.forEach(metric => {
+                        const {name, color} = builder_metrics[block_data.type][metric]
                         const dataset_data = test.datasets[this.backend_time_aggregation][request].map(scoped_dataset => {
                             const time_delta = new Date(scoped_dataset.time) - request_earliest_date_value
                             // const time_delta = new Date(test.start_time) - new Date(scoped_dataset.time)
-
-                            const {name, color} = builder_metrics[block_data.type][metric]
                             return {
                                 // x: new Date(this.earliest_date.valueOf() + time_delta),
                                 x: new Date(time_delta),
@@ -553,6 +573,7 @@ const BuilderFilter = {
                         }).sort((a, b) => {
                             return a.x - b.x
                         })
+                        const scale = builder_metrics[block_data.type][metric].scale || 'y' // could be 'counts'
                         const dataset = {
                             label: `${test.name}(${test.id}) ${request}: ${metric}`,
                             data: dataset_data,
@@ -560,12 +581,13 @@ const BuilderFilter = {
                             borderColor: dataset_data.map(i => i.border_color || '#ffffff'),
                             borderWidth: 2,
                             backgroundColor: get_random_color(),
-                            tension: 0.4,
+                            tension: scale === 'y' ? 0.4 : 0,
                             type: 'line',
                             showLine: true,
                             radius: 4,
                             // hidden: true,
-                            source_block_id: block_data.id
+                            source_block_id: block_data.id,
+                            yAxisID: scale
                         }
                         datasets.push(dataset)
                         const table_data_metrics = test.aggregated_requests_data[request]
