@@ -37,5 +37,5 @@ class API(Resource):
                 )
             except Empty:
                 ...
-        result = [report for report in result]
+        # result = [report for report in result]  # wtf?
         return result
