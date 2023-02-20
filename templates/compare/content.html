@@ -192,15 +192,6 @@
 
     <div class="card my-3">
         <div class="card-header d-inline-flex card-header-padding-fix">
-            <h4 class="font-h4 font-bold">Debug</h4>
-        </div>
-        <div class="card-body d-flex" id="debug-card">
-
-        </div>
-    </div>
-
-    <div class="card my-3">
-        <div class="card-header d-inline-flex card-header-padding-fix">
             <h4 class="font-h4 font-bold">Comparison builder</h4>
             <div class="ml-3 flex-grow-1">
                 {% if 'backend_performance' in comparison_data["unique_groups"].keys() %}
@@ -219,8 +210,11 @@
                     </div>
                 {% endif %}
             </div>
-            <div data-toggle="tooltip" data-placement="left" title="" data-original-title="Share filters">
-                <button class="btn btn-primary btn-32" onclick="handle_share_create()">
+            <div data-toggle="tooltip" data-placement="left" title=""
+                 :data-original-title="window.location.search.indexOf('share') > -1 ? 'Create another share' : 'Share filters'">
+                <button class="btn btn-primary btn-32" onclick="handle_share_create()"
+                :class="{'btn-success': window.location.search.indexOf('share') > -1}"
+                >
                     <i class="fa fa-share"></i>
                 </button>
             </div>
