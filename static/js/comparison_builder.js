@@ -104,7 +104,8 @@ const chart_options = {
                 position: 'left',
                 // text: 'Y label here',
                 // display: 'auto',
-                display: true,
+                // display: true,
+                display: 'auto',
                 grid: {
                     display: true,
                     borderDash: [2, 1],
@@ -115,12 +116,29 @@ const chart_options = {
                 // }
                 min: 0
             },
+            counts: {
+                type: 'linear',
+                position: 'right',
+                // text: 'Counts',
+                display: 'auto',
+                // display: true,
+                grid: {
+                    drawOnChartArea: false, // only want the grid lines for one axis to show up
+                //     display: true,
+                //     borderDash: [2, 1],
+                //     color: "#D3D3D3"
+                },
+                ticks: {
+                    stepSize: 1
+                },
+                min: 0
+            },
         }
     },
 }
 
 // constants and public functions
-window.NAME_DELIMITER  = ' | '
+window.NAME_DELIMITER = ' | '
 
 const get_random_color = () => {
     const rnd = () => Math.floor(Math.random() * 255)
@@ -139,18 +157,21 @@ const builder_metrics = {
         lvc: {name: 'lvc', color: get_random_color()},
     },
     [page_constants.backend_name]: {
-        total: {name: 'total', color: get_random_color()},
         min: {name: 'min', color: get_random_color()},
         max: {name: 'max', color: get_random_color()},
         median: {name: 'median', color: get_random_color()},
         pct90: {name: 'pct90', color: get_random_color()},
         pct95: {name: 'pct95', color: get_random_color()},
         pct99: {name: 'pct99', color: get_random_color()},
-        onexx: {name: 'onexx', color: get_random_color()},
-        twoxx: {name: 'twoxx', color: get_random_color()},
-        threexx: {name: 'threexx', color: get_random_color()},
-        fourxx: {name: 'fourxx', color: get_random_color()},
-        fivexx: {name: 'fivexx', color: get_random_color()}
+        total: {name: 'total', color: get_random_color(), scale: 'counts'},
+        failures: {name: 'failures', color: get_random_color(), scale: 'counts'},
+        throughput: {name: 'throughput', color: get_random_color(), scale: 'counts'},
+        onexx: {name: 'onexx', color: get_random_color(), scale: 'counts'},
+        twoxx: {name: 'twoxx', color: get_random_color(), scale: 'counts'},
+        threexx: {name: 'threexx', color: get_random_color(), scale: 'counts'},
+        fourxx: {name: 'fourxx', color: get_random_color(), scale: 'counts'},
+        fivexx: {name: 'fivexx', color: get_random_color(), scale: 'counts'},
+        users: {name: 'users', color: get_random_color(), scale: 'counts'},
     }
 }
 const clear_block_filter = (block_id, update_chart = true) => {
@@ -201,7 +222,7 @@ const FilterBlock = {
     props: [
         'idx', 'block_id', 'block_type', 'action_options',
         'metric_options', 'is_loading', 'initial_actions', 'initial_metrics',
-        'saved', 'multi_env'
+        'saved', 'multi_env', 'sharing_mode', 'updated_at'
     ],
     emits: ['remove', 'apply', 'selection_change', 'save', 'delete'],
     data() {
@@ -239,6 +260,18 @@ const FilterBlock = {
         },
         selected_metrics() {
             this.$emit('selection_change', this.$data)
+        },
+        pre_selected_actions_indexes(newValue, oldValue) {
+            this.selected_actions = this.initial_actions
+            this.$nextTick(() => {
+                this.handle_apply_click()
+            })
+        },
+        pre_selected_metrics_indexes(newValue, oldValue) {
+            this.selected_metrics = this.initial_metrics
+            this.$nextTick(() => {
+                this.handle_apply_click()
+            })
         }
     },
     computed: {
@@ -252,9 +285,6 @@ const FilterBlock = {
                 }
                 return accum
             }, [])
-            // debugger
-            // return this.action_options.filter(i => this.initial_actions.indexOf(i) > -1)
-            // return this.action_options.map(i => this.initial_actions.indexOf(i)).filter(i => i > -1)
         },
         pre_selected_metrics_indexes() {
             if (this.initial_metrics === undefined) {
@@ -266,7 +296,6 @@ const FilterBlock = {
                 }
                 return accum
             }, [])
-            // return Object.keys(this.metric_options).map(i => this.initial_metrics.indexOf(i)).filter(i => i > -1)
         },
         colored_metric_options() {
             return Object.entries(this.metric_options).map(([k, {name, color}]) => {
@@ -284,7 +313,7 @@ const FilterBlock = {
             return this.block_type === page_constants.backend_name ? 'Transactions/Requests' : 'Pages/Actions'
         },
         formatted_actions() {
-            return this.multi_env ? this.action_options : this.action_options.map(i => ({name: parse_action(i)[2], value: i}))
+            return this.action_options.map(i => ({name: this.multi_env ? i : parse_action(i)[2], value: i}))
         }
     },
     template: `
@@ -299,6 +328,7 @@ const FilterBlock = {
                 placeholder="Select items"
                 :pre_selected_indexes="pre_selected_actions_indexes"
                 return_key="value"
+                :key="sharing_mode ? updated_at : block_id"
             ></MultiselectDropdown>
             <p class="font-h5 font-bold my-1 text-gray-800">Metrics</p>
             <MultiselectDropdown
@@ -307,6 +337,7 @@ const FilterBlock = {
                 placeholder="Select metrics"
                 return_key="data_key"
                 :pre_selected_indexes="pre_selected_metrics_indexes"
+                :key="sharing_mode ? updated_at : block_id"
             ></MultiselectDropdown>
             <div class="pt-3">
                 <button class="btn btn-secondary mr-2"
@@ -319,8 +350,21 @@ const FilterBlock = {
 <!--                    ></i>-->
                 </button>
                 <button class="btn btn-secondary btn-32"
+                    :disabled="is_loading || (selected_actions.length === 0 || selected_metrics.length === 0)"
+                    @click="handle_save_click"
+                    v-if="sharing_mode"
+                >
+                    <i class="spinner-loader"
+                        v-if="is_loading"
+                    ></i>
+                    <i class="fa fa-share"
+                        v-else
+                    ></i>
+                </button>
+                <button class="btn btn-secondary btn-32"
                     :disabled="saved || is_loading || (selected_actions.length === 0 || selected_metrics.length === 0)"
                     @click="handle_save_click"
+                    v-else
                 >
                     <i class="spinner-loader"
                         v-if="is_loading"
@@ -329,8 +373,6 @@ const FilterBlock = {
                         v-else
                     ></i>
                 </button>
-<!--                multi_env [[ multi_env.toString() ]]-->
-<!--                saved [[ saved.toString() ]]-->
             </div>
             
         </div>
@@ -347,7 +389,7 @@ const BuilderFilter = {
         'FilterBlock': FilterBlock,
     },
     props: ['unique_groups', 'ui_performance_builder_data', 'backend_performance_builder_data',
-        'tests', 'backend_time_aggregation', 'persistent_filters'],
+        'tests', 'backend_time_aggregation', 'user_filters', 'shared_filters'],
     data() {
         return {
             blocks: [],
@@ -362,16 +404,19 @@ const BuilderFilter = {
             multi_env: {
                 [page_constants.backend_name]: false,
                 [page_constants.ui_name]: false
-            }
+            },
+            share_uid: new URLSearchParams(location.search).get('share'),
         }
     },
     async mounted() {
+        // setting options
         const {page_names, earliest_date: ui_earliest_date} = this.ui_performance_builder_data
         this.all_tests_ui_pages = page_names
         const {all_requests, earliest_date: backend_earliest_date} = this.backend_performance_builder_data
         this.all_tests_backend_requests = all_requests
         this.set_options()
 
+        // setting earliest date for charts
         if (ui_earliest_date === undefined && backend_earliest_date === undefined) {
             console.error('Earliest date cannot be set')
         } else if (ui_earliest_date === undefined) {
@@ -387,12 +432,12 @@ const BuilderFilter = {
         $('html').css({'scroll-behavior': 'smooth'}) // todo: maybe we don't need that
 
 
-        // const comparison_hash = new URLSearchParams(location.search).get('source')
+        // setting session storage items
         const stored_filters = JSON.parse(sessionStorage.getItem(this.comparison_hash))
         if (stored_filters !== null) {
-            const persistent_filters_ids = this.persistent_filters.map(f => f.id)
+            const user_filters_ids = this.user_filters.map(f => f.id)
             this.blocks = stored_filters.filter(f =>
-                !persistent_filters_ids.includes(f.id)
+                !user_filters_ids.includes(f.id)
             ).map(f => {
                 f.is_loading = false
                 f.saved = false
@@ -400,12 +445,8 @@ const BuilderFilter = {
             })
             sessionStorage.removeItem(this.comparison_hash)
         }
-        this.blocks = [...this.blocks, ...this.persistent_filters.map(f => {
-            f.is_loading = false
-            f.saved = true
-            return f
-        })]
 
+        // setting root function for getting state
         this.$root.custom_data.get_filter_blocks_state = () => this.blocks.map(({id, type}) => {
             const {
                 selected_actions: initial_actions,
@@ -413,8 +454,55 @@ const BuilderFilter = {
             } = this.filter_selections[id]
             return {id, type, initial_actions, initial_metrics}
         })
+
+        // function for setting filters
+        const set_filters = filters => {
+            this.blocks = [...this.blocks, ...filters.map(f => {
+                f.is_loading = false
+                f.saved = true
+                return f
+            })]
+        }
+
+        if (this.sharing_mode) {
+            // set initial state of shared filters
+            set_filters(this.shared_filters)
+            // connect to websocket if in sharing mode
+            this.setup_websocket()
+        } else {
+            // alert of user persistent filters
+            if (this.user_filters?.length > 0) {
+                this.$root.custom_data.set_user_persistent_filters = set_filters.bind(this, this.user_filters)
+                alertMain.add(
+                    `
+                        You have saved filters for this comparison. 
+                        <button class="btn btn-basic btn-sm d-inline mx-1" data-dismiss="alert" 
+                            onclick="V.custom_data.set_user_persistent_filters()">
+                            Load
+                        </button>
+                    `,
+                    'info-overlay',
+                    true
+                )
+            }
+        }
+
+
     },
     methods: {
+        setup_websocket() {
+            window.socket.on(
+                `performance_analysis_${this.comparison_hash}_${this.share_uid}`,
+                async payload => {
+                    console.debug('websocket payload', payload)
+                    if (this.$root.user.id !== payload.user.id) {
+                        showNotify('INFO', `${payload.user.name} changed filters`)
+                        this.blocks = payload.data
+                        // this.blocks = this.blocks.filter(i => payload.new_item.id !== i.id).push(payload.new_item)
+                    }
+                }
+            )
+        },
         handle_remove(idx) {
             const {id: block_id} = this.blocks.splice(idx, 1)[0]
             clear_block_filter(block_id)
@@ -437,30 +525,12 @@ const BuilderFilter = {
                             return [...accum, ...i.map(combo => [...combo, o].join(NAME_DELIMITER))]
                         }, [])
                         this.multi_env[page_constants.backend_name] = i.length > 1
-                        // if (i.length === 1) {
-                        //     // this.backend_options = this.all_tests_backend_requests
-                        //     this.multi_env[page_constants.backend_name] = false
-                        // } else {
-                        //     // this.backend_options = this.all_tests_backend_requests.reduce((accum, o) => {
-                        //     //     return [...accum, ...i.map(combo => [...combo, o].join(NAME_DELIMITER))]
-                        //     // }, [])
-                        //     this.multi_env[page_constants.backend_name] = true
-                        // }
                         break
                     case 'ui_performance':
                         this.ui_options = this.all_tests_ui_pages.reduce((accum, o) => {
                             return [...accum, ...i.map(combo => [...combo, o].join(NAME_DELIMITER))]
                         }, [])
                         this.multi_env[page_constants.ui_name] = i.length > 1
-                        // if (i.length === 1) {
-                        //     this.ui_options = this.all_tests_ui_pages
-                        //     this.multi_env[page_constants.ui_name] = false
-                        // } else {
-                        //     this.ui_options = this.all_tests_ui_pages.reduce((accum, o) => {
-                        //         return [...accum, ...i.map(combo => [...combo, o].join(NAME_DELIMITER))]
-                        //     }, [])
-                        //     this.multi_env[page_constants.ui_name] = true
-                        // }
                         break
                     default:
                         console.warn('Unknown test group: ', group)
@@ -482,11 +552,10 @@ const BuilderFilter = {
                         )
                     )
                     selected_metrics.forEach(metric => {
+                        const {name, color} = builder_metrics[block_data.type][metric]
                         const dataset_data = test.datasets[this.backend_time_aggregation][request].map(scoped_dataset => {
                             const time_delta = new Date(scoped_dataset.time) - request_earliest_date_value
                             // const time_delta = new Date(test.start_time) - new Date(scoped_dataset.time)
-
-                            const {name, color} = builder_metrics[block_data.type][metric]
                             return {
                                 // x: new Date(this.earliest_date.valueOf() + time_delta),
                                 x: new Date(time_delta),
@@ -504,6 +573,7 @@ const BuilderFilter = {
                         }).sort((a, b) => {
                             return a.x - b.x
                         })
+                        const scale = builder_metrics[block_data.type][metric].scale || 'y' // could be 'counts'
                         const dataset = {
                             label: `${test.name}(${test.id}) ${request}: ${metric}`,
                             data: dataset_data,
@@ -511,12 +581,13 @@ const BuilderFilter = {
                             borderColor: dataset_data.map(i => i.border_color || '#ffffff'),
                             borderWidth: 2,
                             backgroundColor: get_random_color(),
-                            tension: 0.4,
+                            tension: scale === 'y' ? 0.4 : 0,
                             type: 'line',
                             showLine: true,
                             radius: 4,
                             // hidden: true,
-                            source_block_id: block_data.id
+                            source_block_id: block_data.id,
+                            yAxisID: scale
                         }
                         datasets.push(dataset)
                         const table_data_metrics = test.aggregated_requests_data[request]
@@ -634,8 +705,10 @@ const BuilderFilter = {
             window.chart_builder.data.datasets = [...window.chart_builder.data.datasets, ...all_datasets]
             window.chart_builder.update()
 
-            clear_filter_blocks_from_table([block_data.id])
-            this.$root.registered_components.table_comparison.table_action('append', all_table_data)
+            this.$root.registered_components.table_comparison.el.ready(() => {
+                clear_filter_blocks_from_table([block_data.id])
+                this.$root.registered_components.table_comparison.table_action('append', all_table_data)
+            })
         },
         handle_add_filter_block(block_type = undefined) {
             if (block_type === undefined) {
@@ -655,10 +728,11 @@ const BuilderFilter = {
         get_metric_options(type) {
             return builder_metrics[type] || {}
         },
-        async handle_save(block_index) {
+        async handle_save_user_filter(block_index) {
             const block_data = this.blocks[block_index]
             block_data.is_loading = true
-            const {id, type} = block_data
+            block_data.updated_at = new Date().valueOf()
+            const {id, type, updated_at} = block_data
             const {
                 selected_actions: initial_actions,
                 selected_metrics: initial_metrics
@@ -667,7 +741,7 @@ const BuilderFilter = {
                 `${api_base}/performance_analysis/user_filters/${getSelectedProjectId()}/${this.comparison_hash}`,
                 {
                     method: 'PUT',
-                    body: JSON.stringify({id, type, initial_actions, initial_metrics}),
+                    body: JSON.stringify({id, type, initial_actions, initial_metrics, updated_at}),
                     headers: {'Content-Type': 'application/json'},
                 }
             )
@@ -679,11 +753,50 @@ const BuilderFilter = {
             }
             block_data.is_loading = false
         },
+        async handle_save_shared_filter(block_index) {
+            const block_data = this.blocks[block_index]
+            block_data.is_loading = true
+            block_data.updated_at = new Date().valueOf()
+            const {id, type, updated_at} = block_data
+            const {selected_actions: initial_actions, selected_metrics: initial_metrics} = this.filter_selections[id]
+            block_data.initial_actions = initial_actions
+            block_data.initial_metrics = initial_metrics
+            const response = await fetch(
+                `${api_base}/performance_analysis/shared_filters/${getSelectedProjectId()}/${this.comparison_hash}`,
+                {
+                    method: 'PUT',
+                    body: JSON.stringify({
+                        uid: this.share_uid,
+                        filter_data: {
+                            id, type, updated_at,
+                            initial_actions, initial_metrics,
+                        }
+                    }),
+                    headers: {'Content-Type': 'application/json'},
+                }
+            )
+            if (response.ok) {
+                showNotify('SUCCESS', 'Filter applied to share')
+            } else {
+                showNotify('ERROR', 'Couldn\'t share filter')
+            }
+            block_data.is_loading = false
+        },
+        async handle_save(block_index) {
+            return this.sharing_mode ?
+                this.handle_save_shared_filter(block_index) :
+                this.handle_save_user_filter(block_index)
+        },
         handle_selection_change(id, index, data) {
             if (!data.initialization_flag) {
                 this.blocks[index].saved = false
             }
             this.filter_selections[id] = data
+        }
+    },
+    computed: {
+        sharing_mode() {
+            return this.share_uid !== null
         }
     },
     template: `
@@ -723,7 +836,7 @@ const BuilderFilter = {
             </div>
             <hr class="my-0">
             <div class="builder_filter_blocks">
-                <div v-for="({id, type, is_loading, initial_actions, initial_metrics, saved}, index) in blocks" :key="id">
+                <div v-for="({id, type, is_loading, initial_actions, initial_metrics, saved, updated_at}, index) in blocks" :key="id">
                     <hr class="my-0" v-if="index > 0">
                     <FilterBlock
                        :idx="index"
@@ -736,6 +849,8 @@ const BuilderFilter = {
                        :initial_metrics="initial_metrics"
                        :saved="saved"
                        :multi_env="multi_env[type]"
+                       :sharing_mode="sharing_mode"
+                       :updated_at="updated_at"
                        @selection_change="data => handle_selection_change(id, index, data)"
                        @remove="handle_remove"
                        @apply="handle_apply"
