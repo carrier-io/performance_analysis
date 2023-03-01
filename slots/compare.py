@@ -90,7 +90,8 @@ class Slot:
                 file_hash=filter_manager.source_hash,
                 baselines=baselines,
                 user_filters=user_filters,
-                shared_filters=shared_filters
+                shared_filters=shared_filters,
+                request=payload.request
             )
 
     @web.slot('performance_analysis_compare_scripts')
