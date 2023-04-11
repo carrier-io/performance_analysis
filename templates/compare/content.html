@@ -12,7 +12,7 @@
 {% if 'test' in request.args %}
     <div class="card my-3" id="debug-panel">
         <div class="card-header">
-            <a :href="'/api/v1/artifacts/artifact/' + project_id + '/comparison/{{ file_hash }}.json'" download>
+            <a :href="$root.build_api_url('artifacts', 'artifact') + '/' + project_id + '/comparison/{{ file_hash }}.json'" download>
                 DOWNLOAD JSON
             </a>
             <button class="btn btn-secondary mx-3" onclick="$(this).closest('div.card').css({display: 'none'})">
@@ -78,7 +78,8 @@
                 Duration
             </th>
             <th scope="col" data-sortable="true" data-field="tags"
-                data-formatter="reportsTagFormatter"
+{#                data-formatter="reportsTagFormatter"#}
+                data-formatter="ParamsTable.tagFormatter"
             >
                 Tag
             </th>

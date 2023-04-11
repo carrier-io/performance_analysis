@@ -6,11 +6,7 @@ class Slot:
     @web.slot('performance_analysis_overview_content')
     def content(self, context, slot, payload):
         project_id = context.rpc_manager.call.project_get_id()
-        public_regions = context.rpc_manager.call.get_rabbit_queues("carrier")
-        try:
-            public_regions.remove("__internal")
-        except:
-            pass
+        public_regions = context.rpc_manager.call.get_rabbit_queues("carrier", True)
         project_regions = context.rpc_manager.call.get_rabbit_queues(
             f"project_{project_id}_vhost")
         try:

@@ -25,4 +25,4 @@ class BaseAnalysisModel(BaseModel):
     test_env: str
     status: str
     duration: int
-    tags: Optional[List[str]] = []
+    tags: Optional[List[dict]] = []
