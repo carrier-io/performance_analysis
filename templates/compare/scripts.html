@@ -4,6 +4,7 @@
 <script src="{{ url_for('performance_analysis.static', filename='js/main.js') }}"></script>
 <script src="{{ url_for('performance_analysis.static', filename='js/expanded_chart.js') }}"></script>
 <script src="{{ url_for('performance_analysis.static', filename='js/chart_section.js') }}"></script>
-<script src="{{ url_for('theme.static', filename='js/tags.js') }}"></script>
+{#<script src="{{ url_for('theme.static', filename='js/tags.js') }}"></script>#}
 <script src="{{ url_for('performance_analysis.static', filename='js/compare.js') }}"></script>
 <script src="{{ url_for('performance_analysis.static', filename='js/comparison_builder.js') }}"></script>
+{{ template_slot('params_table_scripts') | safe }}
