@@ -4,7 +4,6 @@ from uuid import uuid4
 from flask import request, url_for, redirect
 from flask_restful import Resource
 
-
 from ...utils import FilterManager
 
 from tools import auth
@@ -18,10 +17,17 @@ class API(Resource):
     def __init__(self, module):
         self.module = module
 
+    @auth.decorators.check_api({
+        "permissions": ["performance.analysis"],
+        "recommended_roles": {
+            "default": {"admin": True, "editor": True, "viewer": True},
+        }
+    })
     def post(self, project_id: int, comparison_hash: str):
         # create shareable filter file
         # user_id = g.auth.id
-        project = self.module.context.rpc_manager.call.project_get_or_404(project_id=project_id)
+        project = self.module.context.rpc_manager.call.project_get_or_404(
+            project_id=project_id)
         bucket_name = self.module.descriptor.config.get('bucket_name', 'comparison')
         filter_manager = FilterManager(
             project,
@@ -36,13 +42,22 @@ class API(Resource):
             file_name=filter_manager.get_shared_filters_name(share_uid)
         )
 
-        url_base = url_for('theme.index', _external=True, _scheme=request.headers.get('X-Forwarded-Proto', 'http'))
-        return redirect(f'{url_base}-/performance/analysis/compare?source={comparison_hash}&share={share_uid}')
+        url_base = url_for('theme.index', _external=True,
+                           _scheme=request.headers.get('X-Forwarded-Proto', 'http'))
+        return redirect(
+            f'{url_base}-/performance/analysis/compare?source={comparison_hash}&share={share_uid}')
 
+    @auth.decorators.check_api({
+        "permissions": ["performance.analysis"],
+        "recommended_roles": {
+            "default": {"admin": True, "editor": True, "viewer": True},
+        }
+    })
     def put(self, project_id: int, comparison_hash: str):
         # handle change shared filters
         # window.socket.on('performance_analysis_{comparison_hash}_{share_uid}', async payload = > {
-        project = self.module.context.rpc_manager.call.project_get_or_404(project_id=project_id)
+        project = self.module.context.rpc_manager.call.project_get_or_404(
+            project_id=project_id)
         bucket_name = self.module.descriptor.config.get('bucket_name', 'comparison')
         share_uid = request.json['uid']
         filter_data = [request.json['filter_data']]
@@ -65,5 +80,6 @@ class API(Resource):
             # 'new_item': request.json['filter_data']
         }
 
-        self.module.context.sio.emit(f'performance_analysis_{comparison_hash}_{share_uid}', payload)
+        self.module.context.sio.emit(f'performance_analysis_{comparison_hash}_{share_uid}',
+                                     payload)
         return payload, 200

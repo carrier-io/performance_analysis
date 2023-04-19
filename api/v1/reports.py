@@ -3,6 +3,7 @@ from queue import Empty
 from pylon.core.tools import log
 from flask_restful import Resource
 from flask import request
+from tools import auth
 
 
 class API(Resource):
@@ -13,6 +14,12 @@ class API(Resource):
     def __init__(self, module):
         self.module = module
 
+    @auth.decorators.check_api({
+        "permissions": ["performance.overview"],
+        "recommended_roles": {
+            "default": {"admin": True, "editor": True, "viewer": True},
+        }
+    })
     def get(self, project_id: int):
         # log.info(f"{request.args=}")
         result = []
