@@ -1,9 +1,16 @@
 from pylon.core.tools import web, log
 from sqlalchemy.util.queue import Empty
+from tools import auth
 
 
 class Slot:
     @web.slot('performance_analysis_overview_content')
+    @auth.decorators.check_slot({
+        "permissions": ["performance.analysis.overview"],
+        "recommended_roles": {
+            "default": {"admin": True, "editor": True, "viewer": True},
+        }
+    })
     def content(self, context, slot, payload):
         project_id = context.rpc_manager.call.project_get_id()
         public_regions = context.rpc_manager.call.get_rabbit_queues("carrier", True)
@@ -52,6 +59,12 @@ class Slot:
             )
 
     @web.slot('performance_analysis_overview_scripts')
+    @auth.decorators.check_slot({
+        "permissions": ["performance.analysis.overview"],
+        "recommended_roles": {
+            "default": {"admin": True, "editor": True, "viewer": True},
+        }
+    })
     def scripts(self, context, slot, payload):
         with context.app.app_context():
             return self.descriptor.render_template(
@@ -59,6 +72,12 @@ class Slot:
             )
 
     @web.slot('performance_analysis_overview_styles')
+    @auth.decorators.check_slot({
+        "permissions": ["performance.analysis.overview"],
+        "recommended_roles": {
+            "default": {"admin": True, "editor": True, "viewer": True},
+        }
+    })
     def styles(self, context, slot, payload):
         with context.app.app_context():
             return self.descriptor.render_template(

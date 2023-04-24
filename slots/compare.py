@@ -5,13 +5,19 @@ from typing import Optional
 
 from pylon.core.tools import web, log
 
-from tools import MinioClient, session_project
+from tools import MinioClient, session_project, auth
 
 from ..utils import process_query_result, FilterManager
 
 
 class Slot:
     @web.slot('performance_analysis_compare_content')
+    @auth.decorators.check_slot({
+        "permissions": ["performance.analysis.compare"],
+        "recommended_roles": {
+            "default": {"admin": True, "editor": True, "viewer": True},
+        }
+    })
     def content(self, context, slot, payload):
         user_id = payload.auth.id
         project = context.rpc_manager.call.project_get_or_404(project_id=session_project.get())
@@ -20,7 +26,8 @@ class Slot:
             self.descriptor.config.get('bucket_name', 'comparison'),
             payload.request.args.get('source')
         )
-        comparison_data = filter_manager.get_minio_file_data_or_none(f'{filter_manager.source_hash}.json')
+        comparison_data = filter_manager.get_minio_file_data_or_none(
+            f'{filter_manager.source_hash}.json')
         if not comparison_data:
             with context.app.app_context():
                 return self.descriptor.render_template(
@@ -95,6 +102,12 @@ class Slot:
             )
 
     @web.slot('performance_analysis_compare_scripts')
+    @auth.decorators.check_slot({
+        "permissions": ["performance.analysis.compare"],
+        "recommended_roles": {
+            "default": {"admin": True, "editor": True, "viewer": True},
+        }
+    })
     def scripts(self, context, slot, payload):
         with context.app.app_context():
             return self.descriptor.render_template(
@@ -102,6 +115,12 @@ class Slot:
             )
 
     @web.slot('performance_analysis_compare_styles')
+    @auth.decorators.check_slot({
+        "permissions": ["performance.analysis.compare"],
+        "recommended_roles": {
+            "default": {"admin": True, "editor": True, "viewer": True},
+        }
+    })
     def styles(self, context, slot, payload):
         with context.app.app_context():
             return self.descriptor.render_template(

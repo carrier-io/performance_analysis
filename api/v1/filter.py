@@ -11,7 +11,7 @@ from pylon.core.tools import log
 from ...utils import process_query_result, merge_comparisons, FilterManager
 from ...models.pd.builder_data import ComparisonDataStruct
 
-# from tools import MinioClient
+from tools import auth
 
 
 class API(Resource):
@@ -22,9 +22,16 @@ class API(Resource):
     def __init__(self, module):
         self.module = module
 
+    @auth.decorators.check_api({
+        "permissions": ["performance.analysis"],
+        "recommended_roles": {
+            "default": {"admin": True, "editor": True, "viewer": True},
+        }
+    })
     def get(self, project_id: int):
         # handle fetch tests with filters from analysis tab
-        project = self.module.context.rpc_manager.call.project_get_or_404(project_id=project_id)
+        project = self.module.context.rpc_manager.call.project_get_or_404(
+            project_id=project_id)
         start_time = request.args.get('start_time')
         if start_time:
             start_time = datetime.fromisoformat(start_time.strip('Z'))
@@ -56,9 +63,16 @@ class API(Resource):
 
         return jsonify(tests)
 
+    @auth.decorators.check_api({
+        "permissions": ["performance.analysis"],
+        "recommended_roles": {
+            "default": {"admin": True, "editor": True, "viewer": True},
+        }
+    })
     def post(self, project_id: int):
         # handle click compare in analysis
-        project = self.module.context.rpc_manager.call.project_get_or_404(project_id=project_id)
+        project = self.module.context.rpc_manager.call.project_get_or_404(
+            project_id=project_id)
         data = dict(request.json)
         # log.info('')
         # log.info('received data %s', json.dumps(data))
@@ -80,7 +94,8 @@ class API(Resource):
                 ).backend_performance_compile_builder_data(project.id, backend_only_tests)
                 # merge dataset data with test data
                 all_backend_datasets = backend_performance_builder_data.pop('datasets')
-                aggregated_requests_data = backend_performance_builder_data.pop('aggregated_requests_data')
+                aggregated_requests_data = backend_performance_builder_data.pop(
+                    'aggregated_requests_data')
                 data['backend_performance_builder_data'] = backend_performance_builder_data
                 for i in data['tests']:
                     if i['group'] == 'backend_performance':
@@ -140,5 +155,6 @@ class API(Resource):
         )
         hash_name = uploaded_file_name[:-len('.json')]
 
-        url_base = url_for('theme.index', _external=True, _scheme=request.headers.get('X-Forwarded-Proto', 'http'))
+        url_base = url_for('theme.index', _external=True,
+                           _scheme=request.headers.get('X-Forwarded-Proto', 'http'))
         return redirect(f'{url_base}-/performance/analysis/compare?source={hash_name}')

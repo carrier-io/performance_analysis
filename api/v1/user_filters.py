@@ -5,7 +5,7 @@ from flask import request, g
 from flask_restful import Resource
 
 from pylon.core.tools import log
-
+from tools import auth
 from ...utils import FilterManager
 
 
@@ -17,10 +17,17 @@ class API(Resource):
     def __init__(self, module):
         self.module = module
 
+    @auth.decorators.check_api({
+        "permissions": ["performance.analysis"],
+        "recommended_roles": {
+            "default": {"admin": True, "editor": True, "viewer": True},
+        }
+    })
     def put(self, project_id: int, comparison_hash: str) -> Tuple[None, int]:
         # update current filters for user
         user_id = g.auth.id
-        project = self.module.context.rpc_manager.call.project_get_or_404(project_id=project_id)
+        project = self.module.context.rpc_manager.call.project_get_or_404(
+            project_id=project_id)
         bucket_name = self.module.descriptor.config.get('bucket_name', 'comparison')
         filter_manager = FilterManager(
             project,

@@ -4,6 +4,7 @@ from queue import Empty
 from flask import request
 from flask_restful import Resource
 from pylon.core.tools import log
+from tools import auth
 
 AMBER_THRESHOLD = 0.6
 GREEN_THRESHOLD = 0.8
@@ -18,6 +19,12 @@ class API(Resource):
     def __init__(self, module):
         self.module = module
 
+    @auth.decorators.check_api({
+        "permissions": ["performance.overview"],
+        "recommended_roles": {
+            "default": {"admin": True, "editor": True, "viewer": True},
+        }
+    })
     def get(self, project_id: int):
         result = []
 
@@ -50,6 +57,8 @@ class API(Resource):
                 finished_tests += 1
             elif report.test_status["status"].lower() == 'success':
                 succeeded_tests += 1
+            else:
+                all_tests -= 1  # Test has one of in progress statuses
 
         log.info(f"{succeeded_tests=}, {finished_tests=}, {all_tests=}")
 

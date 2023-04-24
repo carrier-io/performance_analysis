@@ -50,6 +50,13 @@ class Module(module.ModuleModel):
                 "Performance",
                 kind="holder",
                 location="left",
+                permissions={
+                    "permissions": ["performance"],
+                    "recommended_roles": {
+                        "administration": {"admin": True, "editor": True, "viewer": False},
+                        "default": {"admin": True, "editor": True, "viewer": False},
+                    }
+                },
             )
         except:
             ...
@@ -61,6 +68,13 @@ class Module(module.ModuleModel):
             kind="slot",
             prefix="performance_analysis_",
             weight=4,
+            permissions={
+                "permissions": ["performance.analysis"],
+                "recommended_roles": {
+                    "administration": {"admin": True, "editor": True, "viewer": False},
+                    "default": {"admin": True, "editor": True, "viewer": False},
+                }
+            }
         )
         theme.register_subsection(
             "performance", "overview",
@@ -69,6 +83,14 @@ class Module(module.ModuleModel):
             kind="slot",
             prefix="performance_analysis_overview_",
             weight=6,
+            permissions={
+                "permissions": ["performance.overview"],
+                "recommended_roles": {
+                    "administration": {"admin": True, "editor": True, "viewer": False},
+                    "default": {"admin": True, "editor": True, "viewer": False},
+                }
+            }
+
         )
 
         theme.register_page(
@@ -77,6 +99,13 @@ class Module(module.ModuleModel):
             title="Tests Comparison",
             kind="slot",
             prefix="performance_analysis_compare_",
+            permissions={
+                "permissions": ["performance.analysis.compare"],
+                "recommended_roles": {
+                    "administration": {"admin": True, "editor": True, "viewer": False},
+                    "default": {"admin": True, "editor": True, "viewer": False},
+                }
+            }
         )
         self.descriptor.init_rpcs()
         self.descriptor.init_api()
