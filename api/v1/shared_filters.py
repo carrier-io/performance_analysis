@@ -73,10 +73,15 @@ class API(Resource):
             file_name=filter_manager.get_shared_filters_name(share_uid)
         )
 
+        user = auth.current_user()
         payload = {
             # 'timestamp': datetime.utcnow().timestamp(),
             'data': final_filters,
-            'user': auth.current_user(),
+            'user': {
+                'id': user.get('id'),
+                'email': user.get('email'),
+                'name': user.get('name')
+            },
             # 'new_item': request.json['filter_data']
         }
 
