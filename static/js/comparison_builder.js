@@ -222,7 +222,7 @@ const FilterBlock = {
     props: [
         'idx', 'block_id', 'block_type', 'action_options',
         'metric_options', 'is_loading', 'initial_actions', 'initial_metrics',
-        'saved', 'multi_env', 'sharing_mode', 'updated_at'
+        'saved', 'multi_env', 'sharing_mode', 'updated_at', 'backend_time_aggregation'
     ],
     emits: ['remove', 'apply', 'selection_change', 'save', 'delete'],
     data() {
@@ -272,6 +272,9 @@ const FilterBlock = {
             this.$nextTick(() => {
                 this.handle_apply_click()
             })
+        },
+        backend_time_aggregation(newValue) {
+            this.block_type === page_constants.backend_name && this.$nextTick(this.handle_apply_click)
         }
     },
     computed: {
@@ -851,6 +854,7 @@ const BuilderFilter = {
                        :multi_env="multi_env[type]"
                        :sharing_mode="sharing_mode"
                        :updated_at="updated_at"
+                       :backend_time_aggregation="backend_time_aggregation"
                        @selection_change="data => handle_selection_change(id, index, data)"
                        @remove="handle_remove"
                        @apply="handle_apply"
