@@ -14,7 +14,7 @@ from pylon.core.tools import log
 from tools import MinioClient, api_tools
 
 
-def process_query_result(plugin, query_data) -> Iterable[Union[BackendAnalysisModel, UIAnalysisModel]]:
+def process_query_result(plugin: str, query_data: list) -> Iterable[Union[BackendAnalysisModel, UIAnalysisModel]]:
     serializers_map = {
         'backend_performance': BackendAnalysisModel,
         'ui_performance': UIAnalysisModel

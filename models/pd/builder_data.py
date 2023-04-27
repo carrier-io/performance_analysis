@@ -57,7 +57,7 @@ class ComparisonDataStruct(BaseModel):
 
     @validator('tests', allow_reuse=True)
     def _ensure_sorted_tests(cls, value: list):
-        value.sort(key=lambda x: x['uid'])
+        value.sort(key=lambda x: x['start_time'])
         return value
 
     @validator('unique_groups', allow_reuse=True)
