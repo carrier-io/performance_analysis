@@ -27,12 +27,28 @@ const get_mapped_name = (name, is_from_backend = undefined) => {
 
 var test_formatters = {
     job_type(value, row, index) {
-        if (row.job_type === "perfmeter") {
-            return '<img src="/design-system/static/assets/ico/jmeter.png" width="20">'
-        } else if (row.job_type === "perfgun") {
-            return '<img src="/design-system/static/assets/ico/gatling.png" width="20">'
+        if (row.test_type === 'backend_performance') {
+            {
+                if (row.job_type === "perfmeter") {
+                    return '<img src="/design-system/static/assets/ico/jmeter.png" width="20">'
+                } else if (row.job_type === "perfgun") {
+                    return '<img src="/design-system/static/assets/ico/gatling.png" width="20">'
+                } else {
+                    return value
+                }
+            }
         } else {
-            return value
+            switch (row.runner) {
+                case 'Sitespeed (browsertime)':
+                    return '<img src="/design-system/static/assets/ico/sitespeed.png" width="20">'
+                case 'Lighthouse':
+                case 'Lighthouse-Nodejs':
+                    return '<img src="/design-system/static/assets/ico/lighthouse.png" width="20">'
+                case 'Observer':
+                    return '<img src="/design-system/static/assets/ico/selenium.png" width="20">'
+                default:
+                    return row.runner
+            }
         }
     },
 
@@ -142,12 +158,29 @@ var report_formatters = {
         return new Date(value).toLocaleString()
     },
     job_type(value, row, index) {
-        if (value === "perfmeter") {
-            return '<img src="/design-system/static/assets/ico/jmeter.png" width="20">'
-        } else if (value === "perfgun") {
-            return '<img src="/design-system/static/assets/ico/gatling.png" width="20">'
+        debugger
+        if (row.report_type === 'backend_performance') {
+            {
+                if (value === "perfmeter") {
+                    return '<img src="/design-system/static/assets/ico/jmeter.png" width="20">'
+                } else if (value === "perfgun") {
+                    return '<img src="/design-system/static/assets/ico/gatling.png" width="20">'
+                } else {
+                    return value
+                }
+            }
         } else {
-            return value
+            switch (row.test_config.runner) {
+                case 'Sitespeed (browsertime)':
+                    return '<img src="/design-system/static/assets/ico/sitespeed.png" width="20">'
+                case 'Lighthouse':
+                case 'Lighthouse-Nodejs':
+                    return '<img src="/design-system/static/assets/ico/lighthouse.png" width="20">'
+                case 'Observer':
+                    return '<img src="/design-system/static/assets/ico/selenium.png" width="20">'
+                default:
+                    return row.test_config.runner
+            }
         }
     },
     status(value, row, index) {
@@ -294,7 +327,7 @@ const group_data_by_timeline = (tests, time_groups, options = {}) => {
         } else if (time_groups.indexOf(time_group) === time_groups.length - 1) {
             return time_group[1]
         } else {
-           return new Date(Math.ceil(time_group.reduce((a, b) => a.getTime() + b.getTime()) / time_group.length))
+            return new Date(Math.ceil(time_group.reduce((a, b) => a.getTime() + b.getTime()) / time_group.length))
         }
     }
 
