@@ -277,21 +277,21 @@ const ExpandedChart = {
                             radio_group_name="expanded_dataset_type"
                         ></TextToggle>
                     </label>
-                    <div class="selectpicker-titled">
-                        <span class="font-h6 font-semibold px-3 item__left text-uppercase">chart aggregation</span>
-                        <select class="selectpicker flex-grow-1" data-style="item__right"
-                                v-model="chart_aggregation"
-                        >
-                            <option value="min">min</option>
-                            <option value="max">max</option>
-                            <option value="mean">mean</option>
-                            <option value="pct50">50 pct</option>
-                            <option value="pct75">75 pct</option>
-                            <option value="pct90">90 pct</option>
-                            <option value="pct95">95 pct</option>
-                            <option value="pct99">99 pct</option>
-                        </select>
-                    </div>
+<!--                    <div class="selectpicker-titled">-->
+<!--                        <span class="font-h6 font-semibold px-3 item__left text-uppercase">chart aggregation</span>-->
+<!--                        <select class="selectpicker flex-grow-1" data-style="item__right"-->
+<!--                                v-model="chart_aggregation"-->
+<!--                        >-->
+<!--                            <option value="min">min</option>-->
+<!--                            <option value="max">max</option>-->
+<!--                            <option value="mean">mean</option>-->
+<!--                            <option value="pct50">50 pct</option>-->
+<!--                            <option value="pct75">75 pct</option>-->
+<!--                            <option value="pct90">90 pct</option>-->
+<!--                            <option value="pct95">95 pct</option>-->
+<!--                            <option value="pct99">99 pct</option>-->
+<!--                        </select>-->
+<!--                    </div>-->
                     <div class="flex-grow-1">
                     </div>
                     <button class="btn btn-secondary btn-icon" @click="handle_image_download">

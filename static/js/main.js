@@ -247,9 +247,9 @@ const quantile = (arr, percent) => {
     }
 }
 
-const calculate_time_groups = (start_time, end_time, n_of_groups) => {
-    const start_date = new Date(start_time)
-    const end_date = new Date(end_time)
+const calculate_time_groups = (t1, t2, n_of_groups) => {
+    const dates = [new Date(t1), new Date(t2)]
+    const [start_date, end_date] = dates[0] < dates[1] ? dates : dates.reverse()
     const period = end_date - start_date
     // const synthetic_groups_num = n_of_groups - 1
     if (period === 0) {

@@ -1,9 +1,10 @@
 from datetime import datetime
 from queue import Empty
 from typing import Optional
-
+import json
+from pydantic.json import pydantic_encoder
 from flask_restful import Resource
-from flask import request, jsonify, redirect, url_for
+from flask import request, make_response, redirect, url_for
 from collections import defaultdict
 
 from pylon.core.tools import log
@@ -57,11 +58,11 @@ class API(Resource):
                     exclude_uids=exclude_uids
                 )
                 result = process_query_result(plugin, q_data)
-                tests.extend(list(map(lambda i: i.dict(), result)))
+                tests.extend(result)
             except Empty:
                 ...
 
-        return jsonify(tests)
+        return make_response(json.dumps(tests, default=pydantic_encoder), 200)
 
     @auth.decorators.check_api({
         "permissions": ["performance.analysis"],
@@ -75,9 +76,12 @@ class API(Resource):
             project_id=project_id)
         data = dict(request.json)
         # log.info('')
-        # log.info('received data %s', json.dumps(data))
+        # log.info('received data %s', data)
         # log.info('')
+        data['tests'].sort(key=lambda t: t['start_time'])
+        log.info('received data sorted %s', data)
         u = defaultdict(set)
+
         for t in data['tests']:
             u[t['group']].add((t['name'], t['test_env'],))
         data['unique_groups'] = dict()
