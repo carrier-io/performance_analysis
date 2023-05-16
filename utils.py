@@ -14,7 +14,8 @@ from pylon.core.tools import log
 from tools import MinioClient, api_tools
 
 
-def process_query_result(plugin: str, query_data: list) -> Iterable[Union[BackendAnalysisModel, UIAnalysisModel]]:
+def process_query_result(plugin: str, query_data: list) -> Iterable[
+    Union[BackendAnalysisModel, UIAnalysisModel]]:
     serializers_map = {
         'backend_performance': BackendAnalysisModel,
         'ui_performance': UIAnalysisModel
@@ -27,7 +28,8 @@ def process_query_result(plugin: str, query_data: list) -> Iterable[Union[Backen
 
 
 def merge_comparisons(source_data: dict, current_data: dict,
-                      check_tests_are_unique: bool = False) -> 'ComparisonDataStruct':
+        check_tests_are_unique: bool = False
+) -> 'ComparisonDataStruct':
     return ComparisonDataStruct.parse_obj(source_data).merge(
         ComparisonDataStruct.parse_obj(current_data),
         check_tests_are_unique
@@ -105,12 +107,26 @@ class FilterManager:
         self.client.upload_file(self.bucket_name, file, file_name)
         return file_name
 
+    def delete_from_minio(self, file_name: str) -> None:
+        self.client.remove_file(self.bucket_name, file_name)
+
     @staticmethod
     def merge_filter_sets(set_1: list, set_2: list) -> list:
+        log.info('merge_filter_sets %s %s', set_1, set_2)
         id_filter_lambda = lambda i: i['id']
         new_filter_ids = set(map(id_filter_lambda, set_2))
 
         final_filters = list(filter(lambda i: i['id'] not in new_filter_ids, set_1))
         final_filters.extend(set_2)
+        final_filters.sort(key=id_filter_lambda)
+        return final_filters
+
+    @staticmethod
+    def remove_filter_sets(set_: list, set_to_remove: list):
+        log.info('remove_filter_sets %s %s', set_, set_to_remove)
+        id_filter_lambda = lambda i: i['id']
+        new_filter_ids = set(map(id_filter_lambda, set_to_remove))
+
+        final_filters = list(filter(lambda i: i['id'] not in new_filter_ids, set_))
         final_filters.sort(key=id_filter_lambda)
         return final_filters

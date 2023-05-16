@@ -55,7 +55,6 @@ class API(Resource):
     })
     def put(self, project_id: int, comparison_hash: str):
         # handle change shared filters
-        # window.socket.on('performance_analysis_{comparison_hash}_{share_uid}', async payload = > {
         project = self.module.context.rpc_manager.call.project_get_or_404(
             project_id=project_id)
         bucket_name = self.module.descriptor.config.get('bucket_name', 'comparison')

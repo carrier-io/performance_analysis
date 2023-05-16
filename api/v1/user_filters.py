@@ -50,3 +50,32 @@ class API(Resource):
             file_name=filter_manager.get_user_filters_name(user_id)
         )
         return None, 204
+
+    @auth.decorators.check_api({
+        "permissions": ["performance.analysis"],
+    })
+    def delete(self, project_id: int, comparison_hash: str) -> Tuple[None, int]:
+        # delete current filters for user
+        user_id = g.auth.id
+        project = self.module.context.rpc_manager.call.project_get_or_404(
+            project_id=project_id)
+        bucket_name = self.module.descriptor.config.get('bucket_name', 'comparison')
+        filter_manager = FilterManager(
+            project,
+            bucket_name,
+            source_hash=comparison_hash
+        )
+        current_filters = filter_manager.get_user_filters(user_id)
+
+        filters_to_delete = request.json
+        final_filters = filter_manager.remove_filter_sets(current_filters, filters_to_delete)
+        log.info('final_filters %s', final_filters)
+
+        if not final_filters:
+            filter_manager.delete_from_minio(filter_manager.get_user_filters_name(user_id))
+        else:
+            filter_manager.upload_to_minio(
+                data=json.dumps(final_filters, ensure_ascii=False).encode('utf-8'),
+                file_name=filter_manager.get_user_filters_name(user_id)
+            )
+        return None, 204

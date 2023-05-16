@@ -3,33 +3,34 @@
 {% set selected_aggregation_ui = comparison_data.get('selected_aggregation_ui', 'mean') %}
 {% set selected_metric_ui = comparison_data.get('selected_metric_ui', 'total') %}
 {% set table_attrs = {
-    'data-page-size': 10,
-    'data-side-pagination': 'client',
-    'data-data': '%s',
-    'baselines': '%s'
+'data-page-size': 10,
+'data-side-pagination': 'client',
+'data-data': '%s',
+'baselines': '%s'
 } | format(tests, baselines | default({}) | tojson) %}
 
 {% if 'test' in request.args %}
-    <div class="card my-3" id="debug-panel">
-        <div class="card-header">
-            <a :href="$root.build_api_url('artifacts', 'artifact') + '/' + project_id + '/comparison/{{ file_hash }}.json'" download>
-                DOWNLOAD JSON
-            </a>
-            <button class="btn btn-secondary mx-3" onclick="$(this).closest('div.card').css({display: 'none'})">
-                HIDE
-            </button>
+<div class="card my-3" id="debug-panel">
+    <div class="card-header">
+        <a :href="$root.build_api_url('artifacts', 'artifact') + '/' + project_id + '/comparison/{{ file_hash }}.json'"
+           download>
+            DOWNLOAD JSON
+        </a>
+        <button class="btn btn-secondary mx-3" onclick="$(this).closest('div.card').css({display: 'none'})">
+            HIDE
+        </button>
+    </div>
+    <div class="card-body d-flex" style="max-height: 300px;">
+        <div style="overflow: scroll; border: 1px solid var(--basic)" class="col-4">
+            <h4>baselines:</h4>
+            <pre>{{ baselines | pretty_json }}</pre>
         </div>
-        <div class="card-body d-flex" style="max-height: 300px;">
-            <div style="overflow: scroll; border: 1px solid var(--basic)" class="col-4">
-                <h4>baselines:</h4>
-                <pre>{{ baselines | pretty_json }}</pre>
-            </div>
-            <div style="overflow: scroll; border: 1px solid var(--basic)" class="mx-2 col-4">
-                <h3>comparison_data:</h3>
-                <pre>{{ comparison_data | pretty_json }}</pre>
-            </div>
+        <div style="overflow: scroll; border: 1px solid var(--basic)" class="mx-2 col-4">
+            <h3>comparison_data:</h3>
+            <pre>{{ comparison_data | pretty_json }}</pre>
         </div>
     </div>
+</div>
 {% endif %}
 
 <div class="p-3">
@@ -53,7 +54,9 @@
             </div>
         </template>
         <template #table_headers="{master}">
-            {#            <th scope="col" data-checkbox="true"></th>#}
+            {#
+            <th scope="col" data-checkbox="true"></th>
+            #}
             <th data-visible="false" data-field="id">index</th>
             <th scope="col" data-sortable="true" data-field="name"
                 data-formatter="report_formatters.name"
@@ -78,7 +81,7 @@
                 Duration
             </th>
             <th scope="col" data-sortable="true" data-field="tags"
-{#                data-formatter="reportsTagFormatter"#}
+                {# data-formatter="reportsTagFormatter" #}
                 data-formatter="ParamsTable.tagFormatter"
             >
                 Tag
@@ -94,24 +97,43 @@
 
     <div class="card my-3">
         <div class="card-header">
-            {#                        <div class="selectpicker-titled"#}
-            {#                             v-show="selected_filters.includes('Backend Aggregation')"#}
-            {#                        >#}
-            {#                            <span class="font-h6 font-semibold px-3 item__left text-uppercase">aggr. BE</span>#}
-            {#                            <select class="selectpicker flex-grow-1" data-style="item__right"#}
-            {#                                    :disabled="!backend_test_selected"#}
-            {#                                    v-model="selected_aggregation_backend"#}
-            {#                            >#}
-            {#                                <option value="min">min</option>#}
-            {#                                <option value="max">max</option>#}
-            {#                                <option value="mean">mean</option>#}
-            {#                                <option value="pct50">50 pct</option>#}
-            {#                                <option value="pct75">75 pct</option>#}
-            {#                                <option value="pct90">90 pct</option>#}
-            {#                                <option value="pct95">95 pct</option>#}
-            {#                                <option value="pct99">99 pct</option>#}
-            {#                            </select>#}
-            {#                        </div>#}
+            {#
+            <div class="selectpicker-titled" #}
+                 {# v-show="selected_filters.includes('Backend Aggregation')" #}
+                 {#>#}
+                {# <span class="font-h6 font-semibold px-3 item__left text-uppercase">aggr. BE</span>#}
+                {# <select class="selectpicker flex-grow-1" data-style="item__right" #}
+                           {# :disabled="!backend_test_selected" #}
+                           {# v-model="selected_aggregation_backend" #}
+                           {#>#}
+                    {#
+                    <option value="min">min</option>
+                    #}
+                    {#
+                    <option value="max">max</option>
+                    #}
+                    {#
+                    <option value="mean">mean</option>
+                    #}
+                    {#
+                    <option value="pct50">50 pct</option>
+                    #}
+                    {#
+                    <option value="pct75">75 pct</option>
+                    #}
+                    {#
+                    <option value="pct90">90 pct</option>
+                    #}
+                    {#
+                    <option value="pct95">95 pct</option>
+                    #}
+                    {#
+                    <option value="pct99">99 pct</option>
+                    #}
+                    {# </select>#}
+                {#
+            </div>
+            #}
         </div>
         <div class="card-body d-flex flex-column">
             <Chart-Section
@@ -153,81 +175,86 @@
                 Start
             </th>
             {% if 'backend_performance' in comparison_data["unique_groups"].keys() %}
-                <th scope="col" data-sortable="true" data-field="metrics.total"
-                    data-formatter="summary_formatters.total"
-                >
-                    Ttl req,<br/>count
-                </th>
-                <th scope="col" data-sortable="true" data-field="metrics.total"
-                    data-formatter="baseline_formatters.total"
-                >
-                    BSL.<br/>DIFF.
-                </th>
-                <th scope="col" data-sortable="true" data-field="metrics.throughput">Thrghpt,<br/>req/sec</th>
-                <th scope="col" data-sortable="true" data-field="metrics.throughput"
-                    data-formatter="baseline_formatters.throughput">BSL.<br/>DIFF.
-                </th>
-                <th scope="col" data-sortable="true" data-field="metrics.failures">Errors,<br/>count</th>
-                <th scope="col" data-sortable="true" data-field="metrics.failures"
-                    data-formatter="baseline_formatters.failures">BSL.<br/>DIFF.
-                </th>
-                <th scope="col" data-sortable="true" data-field="aggregations.pct95">Pct95,<br/>ms</th>
-                <th scope="col" data-sortable="true" data-field="aggregations.pct95"
-                    data-formatter="baseline_formatters.aggregations">BSL.<br/>DIFF.
-                </th>
+            <th scope="col" data-sortable="true" data-field="metrics.total"
+                data-formatter="summary_formatters.total"
+            >
+                Ttl req,<br/>count
+            </th>
+            <th scope="col" data-sortable="true" data-field="metrics.total"
+                data-formatter="baseline_formatters.total"
+            >
+                BSL.<br/>DIFF.
+            </th>
+            <th scope="col" data-sortable="true" data-field="metrics.throughput">Thrghpt,<br/>req/sec</th>
+            <th scope="col" data-sortable="true" data-field="metrics.throughput"
+                data-formatter="baseline_formatters.throughput">BSL.<br/>DIFF.
+            </th>
+            <th scope="col" data-sortable="true" data-field="metrics.failures">Errors,<br/>count</th>
+            <th scope="col" data-sortable="true" data-field="metrics.failures"
+                data-formatter="baseline_formatters.failures">BSL.<br/>DIFF.
+            </th>
+            <th scope="col" data-sortable="true" data-field="aggregations.pct95">Pct95,<br/>ms</th>
+            <th scope="col" data-sortable="true" data-field="aggregations.pct95"
+                data-formatter="baseline_formatters.aggregations">BSL.<br/>DIFF.
+            </th>
             {% endif %}
             {% if 'ui_performance' in comparison_data["unique_groups"].keys() %}
-                <th scope="col" data-sortable="true" data-field="metrics.total.mean">Page<br/>load</th>
-                <th scope="col" data-sortable="true" data-field="metrics.total.mean"
-                    data-formatter="baseline_formatters.page_speed">BSL.<br/>DIFF.
-                </th>
+            <th scope="col" data-sortable="true" data-field="metrics.total.mean">Page<br/>load</th>
+            <th scope="col" data-sortable="true" data-field="metrics.total.mean"
+                data-formatter="baseline_formatters.page_speed">BSL.<br/>DIFF.
+            </th>
             {% endif %}
         </template>
     </Table-Card>
     {% with
-        exclude_uids=comparison_data.get('tests', []) | map(attribute='uid') | list,
-        selected_aggregation_backend=selected_aggregation_backend,
-        selected_aggregation_ui=selected_aggregation_ui,
-        selected_metric_ui=selected_metric_ui %}
-        {% include 'performance_analysis:compare/add_tests_modal.html' %}
+    exclude_uids=comparison_data.get('tests', []) | map(attribute='uid') | list,
+    selected_aggregation_backend=selected_aggregation_backend,
+    selected_aggregation_ui=selected_aggregation_ui,
+    selected_metric_ui=selected_metric_ui %}
+    {% include 'performance_analysis:compare/add_tests_modal.html' %}
     {% endwith %}
 
     <div class="card my-3">
-        <div class="card-header d-inline-flex card-header-padding-fix">
+        <div class="card-header d-inline-flex card-header-padding-fix align-items-center justify-content-between">
             <h4 class="font-h4 font-bold">Comparison builder</h4>
-            <div class="ml-3 flex-grow-1">
+            <div class="d-inline-flex">
                 {% if 'backend_performance' in comparison_data["unique_groups"].keys() %}
-                    <div class="selectpicker-titled" style="max-width: 220px">
-                        <span class="font-h6 font-semibold px-3 item__left text-uppercase">Time aggregation</span>
-                        <select class="selectpicker flex-grow-1" data-style="item__right"
-                                v-model="custom_data.time_aggregation"
-                        >
-                            <option value="1s">1s</option>
-                            <option value="5s">5s</option>
-                            <option value="30s">30s</option>
-                            <option value="1m">1m</option>
-                            <option value="5m">5m</option>
-                            <option value="10m">10m</option>
-                        </select>
-                    </div>
+                <div class="selectpicker-titled align-content-end" style="max-width: 220px">
+                    <span class="font-h6 font-semibold px-3 item__left text-uppercase">Time aggr.</span>
+                    <select class="selectpicker flex-grow-1" data-style="item__right"
+                            v-model="custom_data.time_aggregation"
+                    >
+                        <option value="1s">1s</option>
+                        <option value="5s">5s</option>
+                        <option value="30s">30s</option>
+                        <option value="1m">1m</option>
+                        <option value="5m">5m</option>
+                        <option value="10m">10m</option>
+                    </select>
+                </div>
                 {% endif %}
-            </div>
-            <div data-toggle="tooltip" data-placement="left" title=""
-                 :data-original-title="window.location.search.indexOf('share') > -1 ? 'Create another share' : 'Share filters'">
-                <button class="btn btn-primary btn-32" onclick="handle_share_create()"
-                :class="{'btn-success': window.location.search.indexOf('share') > -1}"
-                >
-                    <i class="fa fa-share"></i>
-                </button>
+                <div data-toggle="tooltip" data-placement="top" title=""
+                     class="ml-2"
+                     :data-original-title="window.location.search.indexOf('share') > -1 ? 'Create another share' : 'Share filters'">
+                    <button class="btn btn-secondary btn-icon btn-32" onclick="handle_share_create()"
+                            :class="{'btn-success': window.location.search.indexOf('share') > -1}"
+                    >
+                        <i class="icon__16x16 icon-integrate-purple"></i>
+                    </button>
+                </div>
             </div>
 
-            {#        <div>#}
-            {#            Make shared#}
-            {#            <label class="custom-toggle">#}
-            {#                <input type="checkbox">#}
-            {#                <span class="custom-toggle-slider rounded-circle" style="box-shadow: 0px 0px 7px 1px grey;"></span>#}
-            {#            </label>#}
-            {#        </div>#}
+            {#
+            <div>#}
+                {# Make shared#}
+                {# <label class="custom-toggle">#}
+                    {# <input type="checkbox">#}
+                    {# <span class="custom-toggle-slider rounded-circle"
+                             style="box-shadow: 0px 0px 7px 1px grey;"></span>#}
+                    {# </label>#}
+                {#
+            </div>
+            #}
         </div>
         <div class="card-body d-flex">
             <div class="flex-grow-1">
@@ -239,11 +266,12 @@
                     :ui_performance_builder_data='{{ comparison_data["ui_performance_builder_data"] | default({}) | tojson }}'
                     :backend_performance_builder_data='{{ comparison_data["backend_performance_builder_data"] | default({}) | tojson }}'
                     :tests='{{ tests }}'
-                    {% if 'backend_performance' in comparison_data["unique_groups"].keys() %}
-                    :backend_time_aggregation='custom_data.time_aggregation'
-                    {% endif %}
-                    :user_filters='{{ user_filters | default([]) | tojson }}'
-                    :shared_filters='{{ shared_filters | default([]) | tojson }}'
+                    {% if
+            'backend_performance' in comparison_data["unique_groups"].keys() %}
+            :backend_time_aggregation='custom_data.time_aggregation'
+            {% endif %}
+            :user_filters='{{ user_filters | default([]) | tojson }}'
+            :shared_filters='{{ shared_filters | default([]) | tojson }}'
             ></Builder-Filter>
         </div>
     </div>
