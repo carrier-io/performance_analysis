@@ -158,7 +158,6 @@ var report_formatters = {
         return new Date(value).toLocaleString()
     },
     job_type(value, row, index) {
-        debugger
         if (row.report_type === 'backend_performance') {
             {
                 if (value === "perfmeter") {
