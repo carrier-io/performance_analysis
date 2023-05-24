@@ -124,9 +124,9 @@ const chart_options = {
                 // display: true,
                 grid: {
                     drawOnChartArea: false, // only want the grid lines for one axis to show up
-                //     display: true,
-                //     borderDash: [2, 1],
-                //     color: "#D3D3D3"
+                    //     display: true,
+                    //     borderDash: [2, 1],
+                    //     color: "#D3D3D3"
                 },
                 ticks: {
                     stepSize: 1
@@ -222,9 +222,10 @@ const FilterBlock = {
     props: [
         'idx', 'block_id', 'block_type', 'action_options',
         'metric_options', 'is_loading', 'initial_actions', 'initial_metrics',
-        'saved', 'multi_env', 'sharing_mode', 'updated_at', 'backend_time_aggregation'
+        'saved', 'multi_env', 'sharing_mode', 'updated_at', 'backend_time_aggregation',
+        'is_hidden'
     ],
-    emits: ['remove', 'apply', 'selection_change', 'save', 'delete'],
+    emits: ['remove', 'apply', 'selection_change', 'save', 'delete', 'hide'],
     data() {
         return {
             selected_actions: [],
@@ -252,6 +253,12 @@ const FilterBlock = {
         },
         handle_save_click() {
             this.$emit('save', this.idx)
+        },
+        handle_hide_click() {
+            this.$emit('hide', this.idx)
+        },
+        handle_show_click() {
+            this.$emit('apply', this.idx, this.selected_actions, this.selected_metrics)
         }
     },
     watch: {
@@ -332,6 +339,9 @@ const FilterBlock = {
                 :pre_selected_indexes="pre_selected_actions_indexes"
                 return_key="value"
                 :key="sharing_mode ? updated_at : block_id"
+                :disabled="is_hidden"
+                hasSearch="true"
+                maxHeight="244px"
             ></MultiselectDropdown>
             <p class="font-h5 font-bold my-1 text-gray-800">Metrics</p>
             <MultiselectDropdown
@@ -341,10 +351,13 @@ const FilterBlock = {
                 return_key="data_key"
                 :pre_selected_indexes="pre_selected_metrics_indexes"
                 :key="sharing_mode ? updated_at : block_id"
+                :disabled="is_hidden"   
+                hasSearch="true"
+                maxHeight="244px"
             ></MultiselectDropdown>
             <div class="pt-3">
                 <button class="btn btn-secondary mr-2"
-                    :disabled="is_loading || (selected_actions.length === 0 || selected_metrics.length === 0)"
+                    :disabled="is_hidden || is_loading || (selected_actions.length === 0 || selected_metrics.length === 0)"
                     @click="handle_apply_click"
                 >
                     Apply
@@ -353,7 +366,7 @@ const FilterBlock = {
 <!--                    ></i>-->
                 </button>
                 <button class="btn btn-secondary btn-32"
-                    :disabled="is_loading || (selected_actions.length === 0 || selected_metrics.length === 0)"
+                    :disabled="is_hidden || is_loading || (selected_actions.length === 0 || selected_metrics.length === 0)"
                     @click="handle_save_click"
                     v-if="sharing_mode"
                 >
@@ -364,8 +377,8 @@ const FilterBlock = {
                         v-else
                     ></i>
                 </button>
-                <button class="btn btn-secondary btn-32"
-                    :disabled="saved || is_loading || (selected_actions.length === 0 || selected_metrics.length === 0)"
+                <button class="btn btn-default btn-32 btn-table btn-icon__lg mr-2"
+                    :disabled="is_hidden || saved || is_loading || (selected_actions.length === 0 || selected_metrics.length === 0)"
                     @click="handle_save_click"
                     v-else
                 >
@@ -376,11 +389,20 @@ const FilterBlock = {
                         v-else
                     ></i>
                 </button>
+                    <button 
+                        @click="handle_remove" type="button" 
+                        class="btn btn-default btn-32 btn-table btn-icon__lg">
+                         <i class="icon__18x18 icon-delete"></i>
+                    </button>
             </div>
             
         </div>
-        <i class="icon__16x16 icon-minus__16 ml-4 mb-3" 
-            @click="handle_remove"
+        <i v-if="!is_hidden" class="icon__16x16 icon-eye ml-4 mb-3" 
+            @click="handle_hide_click"
+        ></i>
+        <i v-else 
+            class="icon__16x16 icon-eye-closed ml-4 mb-3" 
+            @click="handle_show_click"
         ></i>
     </div>
     `
@@ -397,6 +419,7 @@ const BuilderFilter = {
         return {
             blocks: [],
             backend_options: [],
+            hidden_blocks: [],
             ui_options: [],
             is_loading: false,
             all_tests_backend_requests: [],
@@ -444,6 +467,7 @@ const BuilderFilter = {
             ).map(f => {
                 f.is_loading = false
                 f.saved = false
+                f.is_hidden = false
                 return f
             })
             sessionStorage.removeItem(this.comparison_hash)
@@ -463,6 +487,7 @@ const BuilderFilter = {
             this.blocks = [...this.blocks, ...filters.map(f => {
                 f.is_loading = false
                 f.saved = true
+                f.is_hidden = false
                 return f
             })]
         }
@@ -506,15 +531,53 @@ const BuilderFilter = {
                 }
             )
         },
-        handle_remove(idx) {
+        async handle_remove(idx) {
+            const block_data = this.blocks[idx]
+            block_data.is_loading = true
+            const response = await fetch(
+                `${api_base}/performance_analysis/user_filters/${getSelectedProjectId()}/${this.comparison_hash}`,
+                {
+                    method: 'DELETE',
+                    body: JSON.stringify([block_data]),
+                    headers: {'Content-Type': 'application/json'},
+                }
+            )
+            if (response.ok) {
+                showNotify('SUCCESS', 'Filter deleted')
+            } else {
+                showNotify('ERROR', 'Couldn\'t delete filter')
+            }
+            block_data.is_loading = false
             const {id: block_id} = this.blocks.splice(idx, 1)[0]
             clear_block_filter(block_id)
             clear_filter_blocks_from_table([block_id])
         },
+        handle_hide(idx) {
+            const block_data = this.blocks[idx]
+            clear_block_filter(block_data.id)
+            block_data.is_hidden = true
+        },
+        handle_show(idx) {
+            const block_data = this.blocks[idx]
+            block_data.is_hidden = false
+        },
         make_id() {
             return new Date().valueOf()
         },
-        handle_clear_all() {
+        async handle_clear_all() {
+            const response = await fetch(
+                `${api_base}/performance_analysis/user_filters/${getSelectedProjectId()}/${this.comparison_hash}`,
+                {
+                    method: 'DELETE',
+                    body: JSON.stringify(this.blocks),
+                    headers: {'Content-Type': 'application/json'},
+                }
+            )
+            if (response.ok) {
+                showNotify('SUCCESS', 'Filters cleaned')
+            } else {
+                showNotify('ERROR', 'Couldn\'t clean filters')
+            }
             window.chart_builder.data.datasets = []
             window.chart_builder.update()
             this.$root.registered_components.table_comparison.table_action('removeAll')
@@ -703,7 +766,7 @@ const BuilderFilter = {
                 default:
                     throw 'UNKNOWN DATA TYPE'
             }
-
+            block_data.is_hidden = false
             clear_block_filter(block_data.id, false)
             window.chart_builder.data.datasets = [...window.chart_builder.data.datasets, ...all_datasets]
             window.chart_builder.update()
@@ -804,25 +867,28 @@ const BuilderFilter = {
     },
     template: `
         <div class="builder_filter_container card">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <p class="font-h5 font-bold py-3 px-4 text-gray-800">DATA FILTER</p>
-                <p class="font-h5 font-bold py-3 px-4 text-gray-800" v-if="is_loading">LOADING</p>
-                <p class="text-purple font-semibold font-h5 cursor-pointer d-flex align-items-center">
-                    <span @click="handle_clear_all">Clear all</span>
-                    <button class="btn"
+            <div class="card-header d-flex justify-content-between pt-3">
+                <p class="font-h5 font-semibold text-gray-800">DATA FILTER</p>
+                <p class="font-h5 font-bold text-gray-800" v-if="is_loading">LOADING</p>
+                <div class="d-flex justify-content-end">
+                    <button @click="handle_clear_all" type="button" 
+                         class="btn btn-default btn-xs btn-table btn-icon__xs mr-2 ">
+                         <i class="icon__18x18 icon-delete"></i>
+                    </button>
+                    <button class="btn pt-0 pl-0 pr-0 pb-2"
                         v-if="backend_options.length === 0 || ui_options.length === 0"
                         @click="handle_add_filter_block()"
                     >
-                        <i class="fa fa-plus text-purple"></i>
+                        <i class="icon__18x18 icon-create-element"></i>
                     </button>
-                    <div class="dropdown dropleft dropdown_action mr-2"
+                    <div class="dropdown dropleft dropdown_action"
                         v-else
                     >
-                        <button class="btn dropdown-toggle"
+                        <button class="btn dropdown-toggle pt-0 pl-0 pr-0 pb-2"
                                 role="button"
                                 data-toggle="dropdown"
                                 aria-expanded="false">
-                            <i class="fa fa-plus text-purple"></i>
+                            <i class="icon__18x18 icon-create-element"></i>
                         </button>
 
                         <ul class="dropdown-menu">
@@ -835,11 +901,11 @@ const BuilderFilter = {
                             </li>
                         </ul>
                     </div>
-                </p>
+                </div>
             </div>
             <hr class="my-0">
             <div class="builder_filter_blocks">
-                <div v-for="({id, type, is_loading, initial_actions, initial_metrics, saved, updated_at}, index) in blocks" :key="id">
+                <div v-for="({id, type, is_loading, initial_actions, initial_metrics, saved, updated_at, is_hidden}, index) in blocks" :key="id">
                     <hr class="my-0" v-if="index > 0">
                     <FilterBlock
                        :idx="index"
@@ -851,6 +917,7 @@ const BuilderFilter = {
                        :initial_actions="initial_actions"
                        :initial_metrics="initial_metrics"
                        :saved="saved"
+                       :is_hidden="is_hidden"
                        :multi_env="multi_env[type]"
                        :sharing_mode="sharing_mode"
                        :updated_at="updated_at"
@@ -859,6 +926,7 @@ const BuilderFilter = {
                        @remove="handle_remove"
                        @apply="handle_apply"
                        @save="handle_save"
+                       @hide="handle_hide"
                     >
                     </FilterBlock>
                 </div> 
