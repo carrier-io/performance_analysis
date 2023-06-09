@@ -9,6 +9,9 @@ var baseline_formatters = {
     set_row_baseline: row => {
         try {
             if (row.baseline === undefined) {
+                if (V.custom_data.baselines === undefined) {
+                    V.custom_data.baselines = JSON.parse(V.registered_components.table_summary.table_attributes.baselines)
+                }
                 row.baseline = V.custom_data.baselines[row.group][row.name][row.test_env]
                 console.debug('Baseline set for', row.id, row.name, row.baseline)
             } else {
@@ -84,7 +87,6 @@ var baseline_formatters = {
 }
 
 $(document).on('vue_init', () => {
-    V.custom_data.baselines = JSON.parse(V.registered_components.table_summary.table_attributes.baselines)
     V.custom_data.handle_add_tests = async selected_tests => {
         // V.custom_data.handle_add_tests = async (selected_tests, page_choices) => {
         if (selected_tests.length === 0) {
