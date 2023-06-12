@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, validator
 from typing import Optional, List
 
 
@@ -26,3 +26,8 @@ class BaseAnalysisModel(BaseModel):
     status: str
     duration: int
     tags: Optional[List[dict]] = []
+    s3_settings: dict
+
+    @validator('s3_settings', always=True, pre=True, check_fields=False)
+    def compute_s3_settings(cls, value: float, values: dict) -> float:
+        return value.get('integrations', {}).get('system', {}).get('s3_integration', {})
