@@ -272,13 +272,13 @@ const ChartSection = {
     },
     template: `
 <div>
-    <div class="d-inline-flex mt-3 chart_controls filter-container">
+    <div class="d-inline-flex chart_controls filter-container">
         <label class="d-inline-flex flex-column">
-            <span class="font-h6">Max points:</span>
+            <span class="font-h6 mb-1">Max points:</span>
             <input type="number" v-model="max_test_on_chart" @change="handle_update_charts" class="form-control max_points_input">
         </label>
         <label class="d-inline-flex flex-column">
-            <span class="font-h6">Chart aggr.:</span>
+            <span class="font-h6 mb-1">Chart aggr.:</span>
             <select class="selectpicker"
                 v-model="chart_aggregation"
             >
@@ -293,8 +293,9 @@ const ChartSection = {
             </select>
         </label>
         <label class="d-inline-flex flex-column">
-            <span class="font-h6">Axis:</span>
+            <span class="font-h6 mb-1">Axis:</span>
             <TextToggle
+                style="margin-top: 1px;"
                 v-model="axis_type"
                 :labels='["categorical", "time"]'
                 radio_group_name="chart_group_axis_type"
@@ -302,7 +303,7 @@ const ChartSection = {
         </label>
     </div>
     
-    <div class="d-flex justify-content-between my-3">
+    <div class="d-grid grid-column-4 my-3">
         <div class="chart-container" v-show="!(hide_absent && filtered_backend_tests.length === 0)">
             <button type="button" class="btn btn-secondary btn-sm btn-icon__sm"
                     @click="() => handle_expand_chart('throughput')"

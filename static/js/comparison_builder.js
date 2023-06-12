@@ -334,70 +334,63 @@ const FilterBlock = {
             </p>
             <MultiselectDropdown
                 :list_items="formatted_actions"
-                v-model="selected_actions"
+                v-model:modelValue="selected_actions"
                 placeholder="Select items"
                 :pre_selected_indexes="pre_selected_actions_indexes"
                 return_key="value"
+                list_position="dropdown-menu-right"
                 :key="sharing_mode ? updated_at : block_id"
                 :disabled="is_hidden"
                 hasSearch="true"
+                container_class="bootstrap-select__b position-static"
                 maxHeight="244px"
             ></MultiselectDropdown>
             <p class="font-h5 font-bold my-1 text-gray-800">Metrics</p>
             <MultiselectDropdown
                 :list_items="colored_metric_options"
-                v-model="selected_metrics"
+                v-model:modelValue="selected_metrics"
                 placeholder="Select metrics"
                 return_key="data_key"
+                list_position="dropdown-menu-right"
                 :pre_selected_indexes="pre_selected_metrics_indexes"
                 :key="sharing_mode ? updated_at : block_id"
                 :disabled="is_hidden"   
                 hasSearch="true"
+                container_class="bootstrap-select__b"
                 maxHeight="244px"
+                list_position="dropdown-menu-right"
             ></MultiselectDropdown>
-            <div class="pt-3">
-                <button class="btn btn-secondary mr-2"
+            <div class="pt-3 d-flex align-items-center">
+                <button class="btn btn-sm btn-secondary mr-3"
                     :disabled="is_hidden || is_loading || (selected_actions.length === 0 || selected_metrics.length === 0)"
                     @click="handle_apply_click"
                 >
                     Apply
-<!--                    <i class="spinner-loader" style="position: absolute; top: 8px; right: 5px"-->
-<!--                        v-if="is_loading"-->
-<!--                    ></i>-->
                 </button>
-                <button class="btn btn-secondary btn-32"
-                    :disabled="is_hidden || is_loading || (selected_actions.length === 0 || selected_metrics.length === 0)"
-                    @click="handle_save_click"
-                    v-if="sharing_mode"
-                >
-                    <i class="spinner-loader"
-                        v-if="is_loading"
-                    ></i>
-                    <i class="fa fa-share"
-                        v-else
-                    ></i>
-                </button>
-                <button class="btn btn-default btn-32 btn-table btn-icon__lg mr-2"
-                    :disabled="is_hidden || saved || is_loading || (selected_actions.length === 0 || selected_metrics.length === 0)"
-                    @click="handle_save_click"
-                    v-else
-                >
-                    <i class="spinner-loader"
-                        v-if="is_loading"
-                    ></i>
-                    <i class="fa fa-save"
-                        v-else
-                    ></i>
-                </button>
-                    <button 
-                        @click="handle_remove" type="button" 
-                        class="btn btn-default btn-32 btn-table btn-icon__lg">
-                         <i class="icon__18x18 icon-delete"></i>
-                    </button>
+                <div class="d-inline" style="width: 14px">
+                    <template
+                        v-if="sharing_mode && !(is_hidden || is_loading || (selected_actions.length === 0 || selected_metrics.length === 0))"
+                    >
+                        <i v-if="is_loading" class="spinner-loader"></i>
+                        <i v-else class="icon__14x14 icon-share" @click="handle_save_click"></i>
+                    </template>
+                    <template
+                        v-else-if="!(is_hidden || saved || is_loading || (selected_actions.length === 0 || selected_metrics.length === 0))"
+                    >
+                        <i v-if="is_loading"
+                            class="spinner-loader"
+                        ></i>
+                        <i v-else 
+                            class="icon__14x14 icon-save"
+                            @click="handle_save_click"
+                        ></i>
+                    </template>
+                </div>
+                <i @click="handle_remove" class="icon__18x18 icon-delete ml-4"></i>
             </div>
-            
         </div>
-        <i v-if="!is_hidden" class="icon__16x16 icon-eye ml-4 mb-3" 
+        <i v-if="!is_hidden" 
+            class="icon__16x16 icon-eye ml-4 mb-3" 
             @click="handle_hide_click"
         ></i>
         <i v-else 
@@ -868,23 +861,17 @@ const BuilderFilter = {
     template: `
         <div class="builder_filter_container card">
             <div class="card-header d-flex justify-content-between pt-3">
-                <p class="font-h5 font-semibold text-gray-800">DATA FILTER</p>
+                <p class="font-h6 font-semibold text-gray-800">DATA FILTER</p>
                 <p class="font-h5 font-bold text-gray-800" v-if="is_loading">LOADING</p>
                 <div class="d-flex justify-content-end">
-                    <button @click="handle_clear_all" type="button" 
-                         class="btn btn-default btn-xs btn-table btn-icon__xs mr-2 ">
-                         <i class="icon__18x18 icon-delete"></i>
-                    </button>
-                    <button class="btn pt-0 pl-0 pr-0 pb-2"
-                        v-if="backend_options.length === 0 || ui_options.length === 0"
-                        @click="handle_add_filter_block()"
-                    >
-                        <i class="icon__18x18 icon-create-element"></i>
-                    </button>
+                    <i @click="handle_clear_all" class="icon__18x18 icon-delete mr-2"></i>
+                    <i v-if="backend_options.length === 0 || ui_options.length === 0"
+                        @click="handle_add_filter_block()" class="icon__18x18 icon-create-element"></i>
                     <div class="dropdown dropleft dropdown_action"
                         v-else
                     >
-                        <button class="btn dropdown-toggle pt-0 pl-0 pr-0 pb-2"
+                        <button class="btn dropdown-toggle p-0"
+                                style="height: auto"
                                 role="button"
                                 data-toggle="dropdown"
                                 aria-expanded="false">

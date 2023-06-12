@@ -228,26 +228,23 @@ const ExpandedChart = {
     <div class="modal-dialog modal-dialog-centered"
          style="min-width: 1200px;"
     >
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 class="modal-title">Chart details</h3>
-                <button type="button" class="btn btn-32 close" data-dismiss="modal" aria-label="Close">
-                    <i class="fas fa-times"></i>
-                </button>
+        <div class="modal-content p-0">
+            <div class="d-flex justify-content-between align-items-end px-28 pt-24 mb-3">
+                <p class="font-h3 font-bold">Chart details</p>
+                <i class="icon__18x18 icon_close-modal" data-dismiss="modal" aria-label="Close"></i>
             </div>
-            <div class="modal-body">
+            <div class="px-28 pb-28">
                 <div v-if="window.location.search.indexOf('test') > -1">
                     <pre><button @click="tmp1 = {}"><i class="fas fa-times"></i></button>[[ tmp1 ]]</pre>
                     <pre><button @click="tmp2 = {}"><i class="fas fa-times"></i></button>[[ tmp2 ]]</pre>
                 </div>
-                
-                <div class="d-flex flex-grow-1 filter-container chart_controls align-items-end">
-                    <label class="d-inline-flex flex-column">
-                        <span class="font-h6">Max points:</span>
+                <div class="d-flex chart_controls align-items-end mb-3">
+                    <label class="d-inline-flex flex-column mr-2">
+                        <span class="font-h6 mb-1">Max points:</span>
                         <input type="number" v-model="max_test_on_chart" class="form-control max_points_input">
                     </label>
-                    <label class="d-inline-flex flex-column">
-                        <span class="font-h6">Chart aggr.:</span>
+                    <label class="d-inline-flex flex-column mr-2">
+                        <span class="font-h6 mb-1">Chart aggr.:</span>
                         <select class="selectpicker"
                             v-model="chart_aggregation"
                         >
@@ -261,16 +258,16 @@ const ExpandedChart = {
                             <option value="pct99">99 pct</option>
                         </select>
                     </label>
-                    <label class="d-inline-flex flex-column">
-                        <span class="font-h6">Axis:</span>
+                    <label class="d-inline-flex flex-column mr-2">
+                        <span class="font-h6 mb-1">Axis:</span>
                         <TextToggle
                             v-model="axis_type"
                             :labels='["categorical", "time"]'
                             radio_group_name="expanded_axis_type"
                         ></TextToggle>
                     </label>
-                    <label class="d-inline-flex flex-column">
-                        <span class="font-h6">Datasets:</span>
+                    <label class="d-inline-flex flex-column mr-2">
+                        <span class="font-h6 mb-1">Datasets:</span>
                         <TextToggle
                             v-model="dataset_type"
                             :labels='["aggregated", "split by test"]'
@@ -294,8 +291,8 @@ const ExpandedChart = {
 <!--                    </div>-->
                     <div class="flex-grow-1">
                     </div>
-                    <button class="btn btn-secondary btn-icon" @click="handle_image_download">
-                        <i class="fa fa-download"></i>
+                    <button class="btn btn-secondary btn-icon btn-icon__purple" @click="handle_image_download">
+                        <i class="icon__18x18 icon-download"></i>
                     </button>
                 </div>
                 <canvas id="expanded_chart"></canvas>
