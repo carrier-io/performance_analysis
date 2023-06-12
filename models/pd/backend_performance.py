@@ -40,7 +40,6 @@ class BackendAnalysisModel(BaseAnalysisModel):
     metrics: BackendAnalysisMetrics
     aggregations: Optional[BackendAnalysisAggregations] = {}
     build_id: str
-    s3_settings: dict
 
     @root_validator(pre=True)
     def set_nested_data(cls, values: dict) -> dict:

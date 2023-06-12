@@ -27,7 +27,6 @@ class UIAnalysisMetrics(BaseModel):
 
 class UIAnalysisModel(BaseAnalysisModel):
     metrics: UIAnalysisMetrics
-    s3_settings: dict
 
     @root_validator(pre=True)
     def set_nested_data(cls, values: dict) -> dict:
