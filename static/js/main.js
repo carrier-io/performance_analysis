@@ -148,7 +148,7 @@ var test_formatters = {
 
 var report_formatters = {
     name(value, row, index) {
-        const test_type = row.report_type === "ui_performance" ? "ui" : "backend"
+        const test_type = row.group === "ui_performance" ? "ui" : "backend"
         return `<a class="test form-control-label font-h5" 
                    href="../${test_type}/results?result_id=${row.id}" role="button">
                     ${row.name}
@@ -158,7 +158,7 @@ var report_formatters = {
         return new Date(value).toLocaleString()
     },
     job_type(value, row, index) {
-        if (row.report_type === 'backend_performance') {
+        if (row.group === 'backend_performance') {
             {
                 if (value === "perfmeter") {
                     return '<img src="/design-system/static/assets/ico/jmeter.png" width="20">'

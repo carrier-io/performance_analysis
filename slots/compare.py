@@ -5,7 +5,7 @@ from typing import Optional
 
 from pylon.core.tools import web, log
 
-from tools import MinioClient, session_project, auth
+from tools import session_project, auth
 
 from ..utils import process_query_result, FilterManager
 
