@@ -44,7 +44,7 @@ const ColorfulCards = {
         }
     },
     template: `
-    <div class="d-grid grid-column-5 gap-3 mt-3 colorful-cards">
+    <div class="d-grid grid-column-5 gap-3 my-3 colorful-cards">
         <div class="card card-sm card-health" :class="health.color" v-if="health_metric">
             <div class="card-header">
                 <i class="icon-health" :class="health.icon"></i>

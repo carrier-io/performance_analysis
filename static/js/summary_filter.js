@@ -1,6 +1,11 @@
 const SummaryFilter = {
     delimiters: ['[[', ']]'],
-    props: ["calculate_health"],
+    props: {
+        calculate_health: {},
+        selected_filters: {
+            default: [],
+        },
+    },
     data() {
         return {
             all_data: [],
@@ -18,7 +23,6 @@ const SummaryFilter = {
             selected_metric_ui: 'total',
             start_time: 'last_week',
             end_time: undefined,
-            selected_filters: [],
             health_metric: undefined,
         }
     },
@@ -281,54 +285,74 @@ const SummaryFilter = {
             </div>
     </div>
     
-    <div class="d-flex flex-wrap filter-container">
-        <div class="selectpicker-titled">
-            <span class="font-h6 font-semibold px-3 item__left text-uppercase">group</span>
-            <select class="selectpicker flex-grow-1" data-style="item__right"
-                multiple
-                v-model="selected_groups"
+    <div class="d-flex flex-wrap gap-2 align-items-center mt-3">
+        <div class="cell-input" style="min-width: 220px">
+            <multiselect-dropdown
+                placeholder="Select group"
+                container_class="bootstrap-select__b bootstrap-select__b-purple"
+                v-model:modelValue="selected_groups"
+                :isAllChecked="true"
+                :key="groups"
+                button_class="btn-select__sm btn btn-select dropdown-toggle d-inline-flex align-items-center btn-border-none py-0 pl-0"
+                :list_items="groups"
             >
-                <option value="all" v-if="groups.length > 0">All</option>
-                <option v-for="i in groups" :value="i" :key="i">[[ i ]]</option>
-            </select>
+                <template #label>
+                    <span class="font-h6 font-semibold item__left text-uppercase d-inline-block pl-3 pr-3 pt-2"
+                        style="border-right: solid 1px var(--basic60); color: var(--basic); height: 30px;">group</span>
+                </template>
+            </multiselect-dropdown>
         </div>
-
-        <div class="selectpicker-titled">
-            <span class="font-h6 font-semibold px-3 item__left text-uppercase">test</span>
-            <select class="selectpicker flex-grow-1" data-style="item__right"
-                multiple
+        <div class="cell-input" style="min-width: 220px">
+            <multiselect-dropdown
+                placeholder="Select test"
+                container_class="bootstrap-select__b bootstrap-select__b-purple"
+                v-model:modelValue="selected_tests"
+                :isAllChecked="true"
+                :key="tests"
                 :disabled="tests.length === 0"
-                v-model="selected_tests"
+                button_class="btn-select__sm btn btn-select dropdown-toggle d-inline-flex align-items-center btn-border-none py-0 pl-0"
+                :list_items="tests"
             >
-                <option value="all" v-if="tests.length > 0">All</option>
-                <option v-for="i in tests" :value="i" :key="i">[[ i ]]</option>
-            </select>
+                <template #label>
+                    <span class="font-h6 font-semibold item__left text-uppercase d-inline-block pl-3 pr-3 pt-2"
+                        style="border-right: solid 1px var(--basic60); color: var(--basic); height: 30px;">test</span>
+                </template>
+            </multiselect-dropdown>
         </div>
-
-        <div class="selectpicker-titled">
-            <span class="font-h6 font-semibold px-3 item__left text-uppercase">type</span>
-            <select class="selectpicker flex-grow-1" data-style="item__right"
-                multiple
-                :disabled="selected_tests.length === 0"
-                v-model="selected_test_types"
+        <div class="cell-input" style="min-width: 220px">
+            <multiselect-dropdown
+                placeholder="Select type"
+                container_class="bootstrap-select__b bootstrap-select__b-purple"
+                v-model:modelValue="selected_test_types"
+                :isAllChecked="true"
+                :key="test_types"
+                :disabled="test_types.length === 0"
+                button_class="btn-select__sm btn btn-select dropdown-toggle d-inline-flex align-items-center btn-border-none py-0 pl-0"
+                :list_items="test_types"
             >
-                <option value="all">All</option>
-                <option v-for="i in test_types" :value="i" :key="i">[[ i ]]</option>
-            </select>
+                <template #label>
+                    <span class="font-h6 font-semibold item__left text-uppercase d-inline-block pl-3 pr-3 pt-2"
+                        style="border-right: solid 1px var(--basic60); color: var(--basic); height: 30px;">type</span>
+                </template>
+            </multiselect-dropdown>
         </div>
-
-        <div class="selectpicker-titled">
-            <span class="font-h6 font-semibold px-3 item__left text-uppercase">env.</span>
-            <select class="selectpicker flex-grow-1" data-style="item__right"
-                multiple
-                :disabled="selected_tests.length === 0"
-                v-model="selected_test_envs"
+        <div class="cell-input" style="min-width: 220px">
+            <multiselect-dropdown
+                placeholder="Select env"
+                container_class="bootstrap-select__b bootstrap-select__b-purple"
+                v-model:modelValue="selected_test_envs"
+                :isAllChecked="true"
+                :key="test_types"
+                :disabled="test_types.length === 0"
+                button_class="btn-select__sm btn btn-select dropdown-toggle d-inline-flex align-items-center btn-border-none py-0 pl-0"
+                :list_items="test_envs"
             >
-                <option value="all">All</option>
-                <option v-for="i in test_envs" :value="i" :key="i">[[ i ]]</option>
-            </select>
+                <template #label>
+                    <span class="font-h6 font-semibold item__left text-uppercase d-inline-block pl-3 pr-3 pt-2"
+                        style="border-right: solid 1px var(--basic60); color: var(--basic); height: 30px;">env.</span>
+                </template>
+            </multiselect-dropdown>
         </div>
-
         <div class="selectpicker-titled" 
             v-show="selected_filters.includes('Backend Aggregation')"
         >
@@ -402,20 +426,6 @@ const SummaryFilter = {
                 <option value="last_month">Last Month</option>
             </select>
         </div>
-
-        <MultiselectDropdown
-            variant="slot"
-            :list_items='["Backend Aggregation", "UI Metric", "UI Aggregation"]'
-            button_class="btn-icon btn-secondary"
-            @change="selected_filters = $event"
-        >
-            <template #dropdown_button><i class="fa fa-filter"></i></template>
-        </MultiselectDropdown>
-
-<!--        <button class="btn btn-basic"-->
-<!--            @click="handle_apply_click"-->
-<!--            :disabled="is_loading"-->
-<!--        >Apply</button>-->
     </div>
     
     <slot name="cards" :master="this"></slot>

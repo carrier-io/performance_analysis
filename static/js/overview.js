@@ -15,17 +15,29 @@ const OverviewPage = {
                 id: 'table_tests_overview',
                 'data-pagination': false,
                 'data-unique-id': 'uid',
-            }
+            },
+            selected_filters: [],
         }
     },
     template: `
-    <div class="p-3">
-    <div class="card">
-        <div class="card-header">
-            <h3>Summary</h3>
+<div class="p-3">
+    <div class="card p-6">
+        <div class="d-flex justify-content-between">
+            <p class="font-h3 font-bold">Summary</p>
+            <MultiselectDropdown
+                variant="slot"
+                :list_items='["Backend Aggregation", "UI Metric", "UI Aggregation"]'
+                button_class="btn-icon btn-secondary"
+                @change="selected_filters = $event"
+                list_position="dropdown-menu-right"
+            >
+                <template #dropdown_button><i class="fa fa-filter"></i></template>
+            </MultiselectDropdown>
         </div>
-        <div class="card-body d-flex flex-column">
-            <SummaryFilter :calculate_health="true">
+        <div class="d-flex flex-column">
+            <SummaryFilter 
+                :calculate_health="true"
+                :selected_filters="selected_filters">
                 <template #cards="{master}">
                     <ColorfulCards
                         :card_data="master.colorful_cards_data"
@@ -53,12 +65,12 @@ const OverviewPage = {
                 <template #actions="{master}">
                 <div class="form-group text-right mb-0">
                     <div class="dropdown dropdown_action">
-                        <button class="btn btn-secondary btn-icon btn-icon__purple mr-2"
+                        <button class="btn btn-basic btn-icon"
                                 role="button"
                                 id="dropdownMenuActionSm"
                                 data-toggle="dropdown"
                                 aria-expanded="false">
-                            <i class="icon__18x18 icon-create-element"></i>
+                            <i class="icon__18x18 icon-create-element icon__white"></i>
                         </button>
                         <ul class="dropdown-menu" aria-labelledby="dropdownMenuActionSm">
                             <li class="px-3 py-1 font-weight-bold">Create Test</li>
@@ -118,10 +130,10 @@ const OverviewPage = {
             >
                 <template #actions="{master}">
                 <div class="form-group text-right mb-0">
-                    <button type="button" class="btn btn-secondary btn-icon btn-icon__purple mr-2" 
+                    <button type="button" class="btn btn-secondary btn-icon btn-icon__purple" 
                         @click="master.table_action('refresh')">
-                    <i class="fas fa-sync"></i>
-                </button>
+                        <i class="icon__14x14 icon-refresh"></i>
+                    </button>
                 </div>
                 </template>
                 <template #table_headers="{master}">
