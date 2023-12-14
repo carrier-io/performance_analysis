@@ -67,7 +67,7 @@ class Module(module.ModuleModel):
             title="Analysis",
             kind="slot",
             prefix="performance_analysis_",
-            weight=4,
+            weight=3,
             permissions={
                 "permissions": ["performance.analysis"],
                 "recommended_roles": {
